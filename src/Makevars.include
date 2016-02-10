@@ -1,0 +1,67 @@
+INCLUDE_GECON = -I$(PREFIX)
+
+OBJECTS_GECON = \
+$(PREFIX)/gecon_info.o
+
+INCLUDE_SYMBOLIC = -I$(PREFIX)/symbolic
+
+OBJECTS_SYMBOLIC = \
+$(PREFIX)/symbolic/utils.o \
+$(PREFIX)/symbolic/stringhash.o \
+$(PREFIX)/symbolic/ex_base.o \
+$(PREFIX)/symbolic/ex_num.o \
+$(PREFIX)/symbolic/ex_delta.o \
+$(PREFIX)/symbolic/ex_symb.o \
+$(PREFIX)/symbolic/ex_symbidx.o \
+$(PREFIX)/symbolic/ex_vart.o \
+$(PREFIX)/symbolic/ex_vartidx.o \
+$(PREFIX)/symbolic/ex_pow.o \
+$(PREFIX)/symbolic/ex_func.o \
+$(PREFIX)/symbolic/ex_e.o \
+$(PREFIX)/symbolic/num_ex_pair_vec.o \
+$(PREFIX)/symbolic/ex_add.o \
+$(PREFIX)/symbolic/ex_mul.o \
+$(PREFIX)/symbolic/idx_set_impl.o \
+$(PREFIX)/symbolic/idx_set.o \
+$(PREFIX)/symbolic/idx_ex.o \
+$(PREFIX)/symbolic/ex_sum.o \
+$(PREFIX)/symbolic/ex_prod.o \
+$(PREFIX)/symbolic/ex_idx.o \
+$(PREFIX)/symbolic/ptr_base.o \
+$(PREFIX)/symbolic/ops_mk.o \
+$(PREFIX)/symbolic/ops_trans.o \
+$(PREFIX)/symbolic/ops_search.o \
+$(PREFIX)/symbolic/ex.o
+
+INCLUDE_PARSER = -I$(PREFIX)/antlr_include -I$(PREFIX)/parser
+
+OBJECTS_PARSER = \
+$(PREFIX)/parser/gEconLexer.o \
+$(PREFIX)/parser/gEconParser.o \
+$(PREFIX)/parser/model_parse.o \
+$(PREFIX)/parser/gecon_tokens.o \
+
+INCLUDE_MODEL = -I$(PREFIX)/model
+
+OBJECTS_MODEL = \
+$(PREFIX)/model/model_block.o \
+$(PREFIX)/model/model.o \
+$(PREFIX)/model/model_doit.o \
+$(PREFIX)/model/model_write.o
+
+OBJECTS_QZ = \
+$(PREFIX)/qz/zgges_interface.o \
+$(PREFIX)/qz/zunmqr.o \
+$(PREFIX)/qz/ztgsyl.o \
+$(PREFIX)/qz/ztgsy2.o \
+$(PREFIX)/qz/ztgsen.o \
+$(PREFIX)/qz/zlatdf.o \
+$(PREFIX)/qz/zhgeqz.o \
+$(PREFIX)/qz/zgghrd.o \
+$(PREFIX)/qz/zgesc2.o \
+$(PREFIX)/qz/zgetc2.o \
+$(PREFIX)/qz/ztgexc.o \
+$(PREFIX)/qz/ztgex2.o \
+$(PREFIX)/qz/zgges.o \
+$(PREFIX)/qz/zggbal.o \
+$(PREFIX)/qz/zggbak.o

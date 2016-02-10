@@ -1,0 +1,114 @@
+# ###################################################################
+# (c) Kancelaria Prezesa Rady Ministrów 2012-2015                   #
+# Treść licencji w pliku:                                           #
+# http://gecon.r-forge.r-project.org/files/gEcon_licence.txt        #
+#                                                                   #
+# (c) Chancellery of the Prime Minister 2012-2015                   #
+# Licence terms can be found in the file:                           #
+# http://gecon.r-forge.r-project.org/files/gEcon_licence.txt        #
+#                                                                   #
+# Author(s): Grzegorz Klima, Karol Podemski,                        #
+#            Kaja Retkiewicz-Wijtiwiak                              #
+# ###################################################################
+# RBC Model with home production based on Benhabib J., 
+# Rogerson R. & Wright R. "Homework in macroeconomics: 
+# Household production and aggregate fluctuations." (1991)
+#
+# Due to the expression 'log(1 - N_m[] - N_h[])' finding model 
+# steady state requires setting initial values 
+# for the following variables: N_h, N_m, N and N_m_d. 
+# An example set of initial values: N = 0.5, N_h = 0.25, N_m = 0.25.
+# ###################################################################
+
+options
+{
+    output logfile = TRUE;
+    output LaTeX = TRUE;
+};
+
+block CONSUMER
+{
+    definitions
+    {
+        u[] = b / e * log(a * C_m[]^e + (1 - a) * C_h[]^e) + (1 - b) * log(1 - N_m[] - N_h[]);
+    };
+    controls
+    {
+        K_m[], K_h[], C_m[], C_h[], N_m[], N_h[], I_m[], I_h[];
+    };
+    objective
+    {
+        U[] = u[] + beta * E[][U[1]];
+    };
+    constraints
+    {
+        I_m[] + I_h[] + C_m[] = r[] * K_m[-1] + W[] * N_m[] + pi[];
+        K_m[] = (1 - delta) * K_m[-1] + I_m[];
+        K_h[] = (1 - delta) * K_h[-1] + I_h[];
+        C_h[] = Z_h[] * Gamma * K_h[-1]^theta * N_h[]^(1 - theta);
+    };
+    identities
+    {
+        K[] = K_m[] + K_h[];
+        I[] = I_m[] + I_h[];
+        N[] = N_m[] + N_h[];
+    };
+    calibration
+    {
+        delta = 0.025;
+        beta = 0.99;
+        e = 0.8;
+        theta = 0.08;
+        Gamma = 1;
+        a = 0.337;
+        b = 0.63;
+    };
+};
+
+block FIRM
+{
+    controls
+    {
+        K_m_d[], N_m_d[], Y[], pi[];
+    };
+    objective
+    {
+        PI[] = pi[];
+    };
+    constraints
+    {
+        pi[] = Y[] - N_m_d[] * W[] - r[] * K_m_d[];
+        Y[] = Z_m[] * Gamma * K_m_d[]^alpha * N_m_d[]^(1 - alpha);
+    };
+    calibration
+    {
+        alpha = 0.36;
+    };
+};
+
+block EQUILIBRIUM
+{
+    identities
+    {
+        K_m_d[] = K_m[-1];
+        N_m_d[] = N_m[];
+    };
+};
+
+block EXOG 
+{
+    identities
+    {
+        Z_h[] = exp(psi * log(Z_h[-1]) + epsilon_h[]);
+        Z_m[] = exp(phi * log(Z_m[-1]) + epsilon_m[]);
+    };
+    shocks
+    {
+        epsilon_h[], epsilon_m[];
+    };
+    calibration
+    {
+        psi = 0.95;
+        phi = 0.95;
+    };
+};

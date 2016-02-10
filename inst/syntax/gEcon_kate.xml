@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE language SYSTEM "language.dtd">
+
+<language name="gEcon" version="0.8.0"
+          kateversion="2.2" section="Scientific"
+          extensions="*.gcn;*.GCN" casesensitive="1">
+
+<highlighting>
+    <!-- Reserved keywords in gEcon -->
+    <list name="keywords1">
+      <item> block </item>
+      <item> options </item>
+      <item> tryreduce </item>
+      <item> indexsets </item>
+    </list>
+    <list name="keywords2">
+      <item> definitions </item>
+      <item> controls </item>
+      <item> objective </item>
+      <item> constraints </item>
+      <item> identities </item>
+      <item> focs </item>
+      <item> shocks </item>
+      <item> calibration </item>
+    </list>
+    <list name="keywords3">
+      <item> E </item>
+      <item> true </item>
+      <item> TRUE </item>
+      <item> false </item>
+      <item> FALSE </item>
+      <item> output </item>
+      <item> verbose </item>
+      <item> backwardcomp </item>
+      <item> SUM </item>
+      <item> PROD </item>
+      <item> KRONECKER_DELTA </item>
+    </list>
+    <list name="keywords4">
+      <item> ss </item>
+      <item> SS </item>
+      <item> inf </item>
+      <item> Inf </item>
+      <item> INF </item>
+    </list>
+
+    <contexts>
+        <context name="normal" attribute="Normal" lineEndContext="#stay">
+            <StringDetect attribute="Keyword 1" context="blockname" String="block" />
+            <DetectChar attribute="Keyword 2" context="refblockname" char="@" />
+            <keyword attribute="Keyword 1" context="#stay" String="keywords1"/>
+            <keyword attribute="Keyword 2" context="#stay" String="keywords2"/>
+            <keyword attribute="Keyword 3" context="#stay" String="keywords3"/>
+            <keyword attribute="Keyword 4" context="#stay" String="keywords4"/>
+            <DetectChar attribute="Comment" context="comment" char="%"/>
+            <DetectChar attribute="Comment" context="comment" char="#"/>
+            <StringDetect attribute="Comment" context="comment" String="//"/>
+            <AnyChar attribute="Symbol" context="#stay" String="&lt;&gt;()[];"/>
+            <AnyChar attribute="Symbol" context="#stay" String="*+-/=@"/>
+            <DetectChar attribute="Symbol" context="#stay" char="{" beginRegion="Brace1" />
+            <DetectChar attribute="Symbol" context="#stay" char="}" endRegion="Brace1" />
+            <RegExpr context="#stay" attribute="Id" String="[a-zA-Z][_a-zA-Z0-9]*" />
+            <RegExpr context="#stay" attribute="Number" String="(\d+(\.\d+)?|\.\d+)([eE][+-]?\d+)?" />
+            <RegExpr context="#stay" attribute="Indexstr" String="'[^']*'" />
+        </context>
+        <context name="comment" attribute="Comment" lineEndContext="#pop"/>
+        <context name="blockname" attribute="Bold Text" lineEndContext="#pop">
+            <DetectChar attribute="Delimiter" context="#pop" char="{" beginRegion="Brace1" />
+        </context>
+        <context name="refblockname" attribute="Bold Text" lineEndContext="#pop">
+            <DetectChar attribute="Delimiter" context="#pop" char=";" />
+        </context>
+    </contexts>
+
+    <itemDatas>
+      <itemData name="Normal"       defStyleNum="dsNormal"/>
+      <itemData name="Bold Text"    defStyleNum="dsNormal" bold="true" />
+      <itemData name="Comment"      defStyleNum="dsComment" color="#008000"/>
+      <itemData name="Keyword 1"    color="#0000FF" bold="true"/>
+      <itemData name="Keyword 2"    color="#0000FF"/>
+      <itemData name="Keyword 3"    color="#0000A0"/>
+      <itemData name="Keyword 4"    defStyleNum="dsFloat"/>
+      <itemData name="Number"       defStyleNum="dsFloat"/>
+      <itemData name="Indexstr"       defStyleNum="dsFloat"/>
+      <itemData name="Index"       defStyleNum="dsFloat"/>
+      <itemData name="Symbol"       defStyleNum="dsNormal"/>
+      <itemData name="Id"       defStyleNum="dsNormal"/>
+    </itemDatas>
+
+</highlighting>
+
+
+<general>
+    <comments>
+        <comment name="singleLine" start="# "/>
+    </comments>
+</general>
+
+</language>

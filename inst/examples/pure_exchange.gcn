@@ -1,0 +1,51 @@
+# ###################################################################
+# (c) Kancelaria Prezesa Rady Ministrów 2012-2014                   #
+# Treść licencji w pliku:                                           #
+# http://gecon.r-forge.r-project.org/files/gEcon_licence.txt        #
+#                                                                   #
+# (c) Chancellery of the Prime Minister 2012-2014                   #
+# Licence terms can be found in the file:                           #
+# http://gecon.r-forge.r-project.org/files/gEcon_licence.txt        #
+#                                                                   #
+# Author(s): Grzegorz Klima, Karol Podemski,                        #
+#            Kaja Retkiewicz-Wijtiwiak                              #
+# ###################################################################
+# Pure exchange model with two consumers and three goods
+# ###################################################################
+
+indexsets
+{
+    goods = {'1' .. '3'};
+    agents = {'A', 'B'};
+};
+
+block <a::agents> AGENTS
+{
+    controls
+    {
+        <g::goods> C<a,g>[];
+    };
+    objective
+    {
+        U<a>[] = PROD<g::goods>(C<a,g>[] ^ alpha<a,g>);
+    };
+    constraints
+    {
+        SUM<g::goods>(p<g>[] * C<a,g>[]) = SUM<g::goods>(p<g>[] * e<a,g>[]);
+    };
+    identities
+    {
+        <g::goods> e<a,g>[] = e_calibr<a,g>;
+    };
+};
+
+block EQUILIBRIUM
+{
+    identities
+    {
+        # numeraire
+        p<'1'>[] = 1;
+        # goods market clearing
+        <g::goods\'1'> SUM<a::agents>(C<a,g>[]) = SUM<a::agents>(e<a,g>[]);
+    };  
+};

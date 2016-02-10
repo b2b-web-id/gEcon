@@ -1,0 +1,124 @@
+# ###################################################################
+# (c) Kancelaria Prezesa Rady Ministrów 2012-2015                   #
+# Treść licencji w pliku:                                           #
+# http://gecon.r-forge.r-project.org/files/gEcon_licence.txt        #
+#                                                                   #
+# (c) Chancellery of the Prime Minister 2012-2015                   #
+# Licence terms can be found in the file:                           #
+# http://gecon.r-forge.r-project.org/files/gEcon_licence.txt        #
+#                                                                   #
+# Author(s): Grzegorz Klima, Karol Podemski,                        #
+#            Kaja Retkiewicz-Wijtiwiak                              #
+# ###################################################################
+# RBC model with monopolistic competition
+# ###################################################################
+
+options
+{
+    output logfile = TRUE;
+    output LaTeX = TRUE;
+};
+
+block CONSUMER
+{
+    definitions
+    {
+        u[] = (C[]^mu * (1 - L_s[])^(1 - mu))^(1 - eta) / (1 - eta);
+    };
+    controls
+    {
+        C[], L_s[];
+    };
+    objective
+    {
+        U[] = u[] + beta * E[][U[1]];
+    };
+    constraints
+    {
+        P_FIN[] * C[] = pi[] + pi_ps[] + W[] * L_s[]    : lambda_c[];
+    };
+    calibration
+    {
+        beta = 0.99;
+        eta = 2;
+        mu = 0.3;
+    };
+};
+
+block INTERMEDIATE_FIRM
+{
+    controls
+    {
+        K[], L_d[], Y[], I[], pi[];
+    };
+    objective
+    {
+        PI[] = pi[] + E[][lambda_U[1] * lambda_c[1] / lambda_c[] * PI[1]];
+    };
+    constraints
+    {
+        pi[] = P[] * Y[] - L_d[] * W[] - I[]                                : lambda_pi[];
+        Y[] = K[-1]^alpha * (Z[] * L_d[])^(1 - alpha)                       : lambda_Y[];
+        K[] = (1 - delta) * K[-1] + I[]                                     : lambda_k[];
+    };
+    calibration
+    {
+        alpha = 0.33;
+        delta = 0.025;
+    };
+};
+
+block MONOPOLISTIC_PRICE_SETTER
+{
+    controls
+    {
+        pi_ps[], Y_MON[], P_MON[];
+    };
+    objective
+    {
+        PI_PS[] = pi_ps[];
+    };
+    constraints
+    {
+        pi_ps[] = (P_MON[] - P[]) * Y_MON[];
+        Y_MON[] = Y_FIN[] * (P_MON[] / P_FIN[])^(-rho);
+    };
+    calibration
+    {
+        rho = 11;
+    };
+};
+
+block FINAL_FIRM
+{
+    identities
+    {
+        Y_FIN[] = Y_MON[];
+    };
+};
+
+block EQUILIBRIUM
+{
+    identities
+    {
+        L_d[] = L_s[];
+        P_FIN[] = 1;
+        Y_MON[] = Y[];
+    };
+};
+
+block EXOG 
+{
+    identities
+    {
+        Z[] = exp(phi * log(Z[-1]) + epsilon_Z[]);
+    };
+    shocks
+    {
+        epsilon_Z[];
+    };
+    calibration
+    {
+        phi = 0.95;
+    };
+};

@@ -1,0 +1,61 @@
+useDynLib(gEcon)
+import(
+    methods,
+    MASS,
+    Matrix,
+    nleqslv,
+    Rcpp
+    )
+export(
+    check_bk,
+    compute_moments,
+    compute_irf,
+    list_eq,
+    list_calibr_eq,
+    gecon_simulation,
+    gecon_model,
+    get_cov_mat,
+    get_par_names,
+    get_index_sets,
+    get_model_info,
+    get_moments,
+    get_par_names_by_index,
+    get_par_values,
+    get_pert_solution,
+    get_residuals,
+    get_shock_names,
+    get_shock_names_by_index,
+    get_simulation_results,
+    get_ss_values,
+    get_var_names,
+    get_var_names_by_index,
+    initval_calibr_par,
+    initval_var,
+    load_model,
+    make_model,
+    par_info,
+    plot_simulation,
+    random_path,
+    re_solved,
+    set_free_par,
+    set_shock_distr_par,
+    set_shock_cov_mat,
+    shock_info,
+    simulate_model,
+    solve_pert,
+    ss_solved,
+    steady_state,
+    var_info
+    )
+exportMethods(
+    print,
+    show,
+    summary
+    )
+exportClasses(
+    gecon_model,
+    gecon_simulation,
+    gecon_shock_info,
+    gecon_var_info,
+    gecon_par_info
+    )

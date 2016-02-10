@@ -1,0 +1,19 @@
+citHeader("To cite package 'gEcon' in publications use:")
+
+year <- sub(".*(2[[:digit:]]{3})-.*", "\\1", meta$Date, perl = TRUE)
+vers <- paste("R package version", meta$Version)
+
+citEntry(entry = "Manual",
+         title = "gEcon: General Equilibrium Economic Modelling Language and Solution Framework",
+         author = personList(as.person("Grzegorz Klima"),
+                             as.person("Karol Podemski"),
+                             as.person("Kaja Retkiewicz-Wijtiwiak")),
+         year = year,
+         note = vers,
+
+         textVersion =
+         paste0("Klima G., Podemski K., Retkiewicz-Wijtiwiak K.(",
+                year,
+                "), \"gEcon: General Equilibrium Economic Modelling Language and Solution Framework\", ",
+                vers, "."))
+
