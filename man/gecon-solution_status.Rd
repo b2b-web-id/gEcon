@@ -27,11 +27,11 @@ Functions allowing to check the solution status of \code{gecon_model} objects.
 }
 \examples{
 # copy the example to the current working directory
-file.copy(from = file.path(system.file("examples", package = 'gEcon'),
-          'rbc.gcn'), to = getwd())
+file.copy(from = file.path(system.file("examples", package = "gEcon"),
+          "rbc.gcn"), to = getwd())
 
 # make and load the model
-rbc <- make_model('rbc.gcn')
+rbc <- make_model("rbc.gcn")
 
 # before the model is solved both return FALSE
 ss_solved(rbc)

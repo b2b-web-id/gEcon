@@ -1,22 +1,26 @@
-# ###################################################################
-# (c) Kancelaria Prezesa Rady Ministrów 2012-2015                   #
-# Treść licencji w pliku:                                           #
-# http://gecon.r-forge.r-project.org/files/gEcon_licence.txt        #
-#                                                                   #
-# (c) Chancellery of the Prime Minister 2012-2015                   #
-# Licence terms can be found in the file:                           #
-# http://gecon.r-forge.r-project.org/files/gEcon_licence.txt        #
-#                                                                   #
-# Author(s): Grzegorz Klima, Karol Podemski,                        #
-#            Kaja Retkiewicz-Wijtiwiak                              #
-# ###################################################################
+# ############################################################################
+# (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015  #
+# (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018    #
+# License terms can be found in the file 'LICENCE'                           #
+#                                                                            #
+# Authors: Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak         #
+# ############################################################################
 # Basic RBC model
-# ###################################################################
+# ############################################################################
+
+
+options
+{
+    output logfile = TRUE;
+    output LaTeX = TRUE;
+};
+
 
 tryreduce
 {
-    lambda_c[], K_d[], L_d[];
+    K_d[], L_d[];
 };
+
 
 block CONSUMER
 {
@@ -34,7 +38,8 @@ block CONSUMER
     };
     constraints
     {
-        I[] + C[] = pi[] + r[] * K_s[-1] + W[] * L_s[] - psi * K_s[-1] * (I[] / K_s[-1] - delta)^2  : lambda_c[];
+        I[] + C[] = pi[] + r[] * K_s[-1] + W[] * L_s[]
+            - psi * K_s[-1] * (I[] / K_s[-1] - delta)^2;
         K_s[] = (1 - delta) * K_s[-1] + I[];
     };
     calibration
@@ -65,7 +70,7 @@ block FIRM
     };
     calibration
     {
-        r[ss] * K_s[ss] = 0.36 * Y[ss] -> alpha;
+        r[ss] * K_d[ss] = 0.36 * Y[ss] -> alpha;
     };
 };
 
@@ -79,14 +84,15 @@ block EQUILIBRIUM
     };
 };
 
-block EXOG 
+
+block EXOG
 {
     identities
-    {    
+    {
         Z[] = exp(phi * log(Z[-1]) + epsilon_Z[]);
     };
     shocks
-    {           
+    {
         epsilon_Z[];
     };
     calibration

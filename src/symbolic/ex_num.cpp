@@ -1,12 +1,12 @@
-/***********************************************************
- * (c) Kancelaria Prezesa Rady Ministrów 2012-2015         *
- * Treść licencji w pliku 'LICENCE'                        *
- *                                                         *
- * (c) Chancellery of the Prime Minister 2012-2015         *
- * License terms can be found in the file 'LICENCE'        *
- *                                                         *
- * Author: Grzegorz Klima                                  *
- ***********************************************************/
+/*****************************************************************************
+ * This file is a part of gEcon.                                             *
+ *                                                                           *
+ * (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015 *
+ * (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018   *
+ * License terms can be found in the file 'LICENCE'                          *
+ *                                                                           *
+ * Author: Grzegorz Klima                                                    *
+ *****************************************************************************/
 
 /** \file ex_num.cpp
  * \brief Numbers.
@@ -44,14 +44,14 @@ ex_num::compare(const ex_num &b) const
 
 
 std::string
-ex_num::str(int pflag) const
+ex_num::str(int pflag, bool c_style) const
 {
     if (pflag & INDEXING_ONLY) return std::string();
     return m_val.str();
 }
 
 std::string
-ex_num::strmap(const map_str_str&) const
+ex_num::strmap(const map_str_str&, bool c_style) const
 {
     return m_val.str();
 }

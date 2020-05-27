@@ -12,8 +12,7 @@ citEntry(entry = "Manual",
          note = vers,
 
          textVersion =
-         paste0("Klima G., Podemski K., Retkiewicz-Wijtiwiak K.(",
-                year,
+         paste0("Klima G., Podemski K., Retkiewicz-Wijtiwiak K. (", year,
                 "), \"gEcon: General Equilibrium Economic Modelling Language and Solution Framework\", ",
                 vers, "."))
 

@@ -1,12 +1,12 @@
-/***********************************************************
- * (c) Kancelaria Prezesa Rady Ministrów 2012-2015         *
- * Treść licencji w pliku 'LICENCE'                        *
- *                                                         *
- * (c) Chancellery of the Prime Minister 2012-2015         *
- * License terms can be found in the file 'LICENCE'        *
- *                                                         *
- * Author: Grzegorz Klima                                  *
- ***********************************************************/
+/*****************************************************************************
+ * This file is a part of gEcon.                                             *
+ *                                                                           *
+ * (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015 *
+ * (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018   *
+ * License terms can be found in the file 'LICENCE'                          *
+ *                                                                           *
+ * Author: Grzegorz Klima                                                    *
+ *****************************************************************************/
 
 /** \file ex_add.cpp
  * \brief Addition.
@@ -132,7 +132,7 @@ ex_add::compare(const ex_add &b) const
 
 
 std::string
-ex_add::str(int pflag) const
+ex_add::str(int pflag, bool c_style) const
 {
     if (pflag & INDEXING_ONLY) return std::string();
     size_t i = 0, n = m_ops.size();
@@ -140,32 +140,32 @@ ex_add::str(int pflag) const
     std::string res;
 
     f = m_ops[i].first;
-    if (f == 1.) res += m_ops[i].second->str(pflag);
-    else if (f == -1.) res += '-' + m_ops[i].second->str(pflag);
+    if (f == 1.) res += m_ops[i].second->str(pflag, c_style);
+    else if (f == -1.) res += '-' + m_ops[i].second->str(pflag, c_style);
     else {
         res += f.str();
         res += " * ";
-        res += m_ops[i].second->str(pflag);
+        res += m_ops[i].second->str(pflag, c_style);
     }
 
     for (++i; i < n; ++i) {
         f = m_ops[i].first;
         if (f == 1.) {
             res += " + ";
-            res += m_ops[i].second->str(pflag);
+            res += m_ops[i].second->str(pflag, c_style);
         } else if (f == -1.) {
             res += " - ";
-            res += m_ops[i].second->str(pflag);
+            res += m_ops[i].second->str(pflag, c_style);
         } else if (f > 0.) {
             res += " + ";
             res += f.str();
             res += " * ";
-            res += m_ops[i].second->str(pflag);
+            res += m_ops[i].second->str(pflag, c_style);
         } else {
             res += " - ";
             res += (-f).str();
             res += " * ";
-            res += m_ops[i].second->str(pflag);
+            res += m_ops[i].second->str(pflag, c_style);
         }
     }
 
@@ -175,39 +175,39 @@ ex_add::str(int pflag) const
 
 
 std::string
-ex_add::strmap(const map_str_str &mss) const
+ex_add::strmap(const map_str_str &mss, bool c_style) const
 {
     size_t i = 0, n = m_ops.size();
     Number f;
     std::string res;
 
     f = m_ops[i].first;
-    if (f == 1.) res += m_ops[i].second->strmap(mss);
-    else if (f == -1.) res += '-' + m_ops[i].second->strmap(mss);
+    if (f == 1.) res += m_ops[i].second->strmap(mss, c_style);
+    else if (f == -1.) res += '-' + m_ops[i].second->strmap(mss, c_style);
     else {
         res += f.str();
         res += " * ";
-        res += m_ops[i].second->strmap(mss);
+        res += m_ops[i].second->strmap(mss, c_style);
     }
 
     for (++i; i < n; ++i) {
         f = m_ops[i].first;
         if (f == 1.) {
             res += " + ";
-            res += m_ops[i].second->strmap(mss);
+            res += m_ops[i].second->strmap(mss, c_style);
         } else if (f == -1.) {
             res += " - ";
-            res += m_ops[i].second->strmap(mss);
+            res += m_ops[i].second->strmap(mss, c_style);
         } else if (f > 0.) {
             res += " + ";
             res += f.str();
             res += " * ";
-            res += m_ops[i].second->strmap(mss);
+            res += m_ops[i].second->strmap(mss, c_style);
         } else {
             res += " - ";
             res += (-f).str();
             res += " * ";
-            res += m_ops[i].second->strmap(mss);
+            res += m_ops[i].second->strmap(mss, c_style);
         }
     }
 

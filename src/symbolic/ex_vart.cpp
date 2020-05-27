@@ -1,12 +1,12 @@
-/***********************************************************
- * (c) Kancelaria Prezesa Rady Ministrów 2012-2015         *
- * Treść licencji w pliku 'LICENCE'                        *
- *                                                         *
- * (c) Chancellery of the Prime Minister 2012-2015         *
- * License terms can be found in the file 'LICENCE'        *
- *                                                         *
- * Author: Grzegorz Klima                                  *
- ***********************************************************/
+/*****************************************************************************
+ * This file is a part of gEcon.                                             *
+ *                                                                           *
+ * (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015 *
+ * (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018   *
+ * License terms can be found in the file 'LICENCE'                          *
+ *                                                                           *
+ * Author: Grzegorz Klima                                                    *
+ *****************************************************************************/
 
 /** \file ex_vart.cpp
  * \brief Time indexed variables.
@@ -92,7 +92,7 @@ ex_vart::get_name() const
 
 
 std::string
-ex_vart::str(int pflag) const
+ex_vart::str(int pflag, bool c_style) const
 {
     if (pflag & INDEXING_ONLY) return std::string();
     std::string res = get_name();
@@ -112,7 +112,7 @@ ex_vart::str(int pflag) const
 
 
 std::string
-ex_vart::strmap(const map_str_str &mss) const
+ex_vart::strmap(const map_str_str &mss, bool c_style) const
 {
     std::string name = get_name();
     map_str_str::const_iterator it;
@@ -173,18 +173,17 @@ ex_vart::has(const ptr_base &what, search_flag f, bool) const
     if (what->type() != VART) return false;
     const ex_vart *w = what.get<ex_vart>();
     if (compareT(m_hash, w->m_hash)) return false;
-    int ld = m_lag - w->m_lag;
     switch (f) {
         case EXACT_T:
-            return (ld == 0) ? true : false;
+            return (m_lag == w->m_lag) ? true : false;
         case ANY_T:
             return true;
         case DIFF_T:
-            return (ld != 0) ? true : false;
+            return (m_lag != w->m_lag) ? true : false;
         case LEAD_T:
-            return (ld > 0) ? true : false;
+            return (m_lag > w->m_lag) ? true : false;
         case LAG_T:
-            return (ld < 0) ? true : false;
+            return (m_lag < w->m_lag) ? true : false;
         default:
             INTERNAL_ERROR
     }

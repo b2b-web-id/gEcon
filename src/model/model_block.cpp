@@ -1,12 +1,12 @@
-/***********************************************************
- * (c) Kancelaria Prezesa Rady Ministrów 2012-2015         *
- * Treść licencji w pliku 'LICENCE'                        *
- *                                                         *
- * (c) Chancellery of the Prime Minister 2012-2015         *
- * License terms can be found in the file 'LICENCE'        *
- *                                                         *
- * Author: Grzegorz Klima                                  *
- ***********************************************************/
+/*****************************************************************************
+ * This file is a part of gEcon.                                             *
+ *                                                                           *
+ * (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015 *
+ * (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018   *
+ * License terms can be found in the file 'LICENCE'                          *
+ *                                                                           *
+ * Author: Grzegorz Klima                                                    *
+ *****************************************************************************/
 
 /** \file model_block.cpp
  * \brief Class representing a block of general equilibrium model.
@@ -28,6 +28,7 @@ using symbolic::internal::CONVERT_IDX;
 using symbolic::internal::DROP_IDX;
 using symbolic::internal::DROP_INDEXING;
 using symbolic::internal::INDEXING_ONLY;
+using symbolic::internal::str2tex2;
 using symbolic::triplet;
 
 
@@ -285,7 +286,7 @@ Model_block::lags()
 
 
 void
-Model_block::focs()
+Model_block::derive_focs()
 {
     if (!m_controls.size()) return;
 
@@ -413,7 +414,7 @@ Model_block::focs()
 
 
 void
-Model_block::focs_deter()
+Model_block::derive_focs_deter()
 {
     if (!m_controls.size()) return;
 
@@ -455,7 +456,7 @@ Model_block::focs_deter()
 
 
 void
-Model_block::focs_static()
+Model_block::derive_focs_static()
 {
     if (!m_controls.size()) return;
     m_redlm.erase(m_obj_lm);
@@ -531,6 +532,7 @@ Model_block::has_ref(const ex &v) const
     return false;
 }
 
+
 void
 Model_block::collect_vp(set_ex &vars, set_ex &parms, bool init)
 {
@@ -573,7 +575,7 @@ Model_block::write_latex(std::ostream &os, bool static_model) const
     symbolic::internal::print_flag pflag = (static_model) ?
         symbolic::internal::DROP_T : symbolic::internal::DEFAULT;
     if (m_controls.size() || m_identities.size()) {
-        os << "\\section{" << symbolic::internal::str2tex2(m_name);
+        os << "\\section{" << str2tex2(m_name);
         if (m_i1) os << " $" << m_i1.tex() << '$';
         if (m_i2) os << " $" << m_i2.tex() << '$';
         os << "}\n\n";
@@ -591,23 +593,32 @@ Model_block::write_latex(std::ostream &os, bool static_model) const
         os << m_controls.back().first.tex(pflag) << "\n} "
            << m_obj_var.tex(pflag) << " = "
            << m_obj_eq_in.tex(pflag) << "\\\\\n";
-        if (m_constraints_in_rhs.size()) {
+        if (m_constraints_in_rhs.size() || m_constraints_ref.size()) {
             os << "&\\mathrm{s.t.:}\\nonumber\\\\\n";
-            unsigned i = 0;
-            for (; i < m_constraints_in_rhs.size() - 1; ++i) {
-                os << "& "
-                   << (m_constraints_in_lhs[i].first - m_constraints_in_rhs[i].first).tex(INDEXING_ONLY)
-                   << m_constraints_in_lhs[i].first.tex(pflag | DROP_INDEXING) << " = "
-                   << m_constraints_in_rhs[i].first.tex(pflag | DROP_INDEXING)
-                   << " \\quad \\left(" << m_lagr_mult[i].first.tex(pflag | DROP_INDEXING)
-                   << "\\right)\\\\\n";
+            if (m_constraints_in_rhs.size()) {
+                for (unsigned i = 0; i < m_constraints_in_rhs.size(); ++i) {
+                    os << "& "
+                       << (m_constraints_in_lhs[i].first - m_constraints_in_rhs[i].first).tex(INDEXING_ONLY)
+                       << m_constraints_in_lhs[i].first.tex(pflag | DROP_INDEXING) << " = "
+                       << m_constraints_in_rhs[i].first.tex(pflag | DROP_INDEXING)
+                       << " \\quad \\left(" << m_lagr_mult[i].first.tex(pflag | DROP_INDEXING);
+                    if ((i + 1 == m_constraints_in_rhs.size()) && !m_constraints_ref.size())
+                        os << "\\right)\n";
+                    else os << "\\right)\\\\\n";
+                }
             }
-            os << "& "
-               << (m_constraints_in_lhs[i].first - m_constraints_in_rhs[i].first).tex(INDEXING_ONLY)
-               << m_constraints_in_lhs[i].first.tex(pflag | DROP_INDEXING) << " = "
-               << m_constraints_in_rhs[i].first.tex(pflag | DROP_INDEXING)
-               << " \\quad \\left(" << m_lagr_mult[i].first.tex(pflag)
-               << "\\right)\n";
+            if (m_constraints_ref.size()) {
+                for (unsigned i = 0; i < m_constraints_ref.size(); ++i) {
+                    os << "& \\mathrm{" << str2tex2(m_constraints_ref[i].first) << "\'s\\ ";
+                    if (m_constraints_ref[i].second == objective) os << "objective";
+                    else if (m_constraints_ref[i].second == constraints) os << "constraints";
+                    else if (m_constraints_ref[i].second == focs) os << "first\\ order\\ conditions";
+                    else if (m_constraints_ref[i].second == identities) os << "identities";
+                    os << '}';
+                    if (i + 1 == m_constraints_ref.size()) os << "\\nonumber\n";
+                    else os << "\\nonumber\\\\\n";
+                }
+            }
         }
         os << "\\end{align}\n\n\n";
     }
@@ -638,10 +649,10 @@ Model_block::write_latex(std::ostream &os, bool static_model) const
             os << "\\subsection{First order conditions after reduction}\n\n";
             for (unsigned f = 0; f < m_focs_red.size(); ++f) {
                 os << "\\begin{equation}\n"
-                << m_focs_red[f].first.tex(INDEXING_ONLY)
-                << m_focs_red[f].first.tex(pflag | DROP_INDEXING) << " = 0\n"
-                << " \\quad \\left(" << m_focs_red[f].second.tex(pflag)
-                << "\\right)\n\\end{equation}\n";
+                   << m_focs_red[f].first.tex(INDEXING_ONLY)
+                   << m_focs_red[f].first.tex(pflag | DROP_INDEXING) << " = 0\n"
+                   << " \\quad \\left(" << m_focs_red[f].second.tex(pflag)
+                   << "\\right)\n\\end{equation}\n";
             }
             os << "\n\n";
         }
@@ -662,15 +673,39 @@ Model_block::write_logfile(std::ostream &os, bool static_model) const
     if (m_i2) os << m_i2.str() << ' ';
     os << m_name << '\n';
 
+    if (m_defs_lhs.size()) {
+        // definitions
+        os << " Definitions:\n";
+        for (unsigned i = 0; i < m_defs_lhs.size(); ++i) {
+            os << "    " << m_defs_lhs[i].first.str(pflag) << " = "
+               << m_defs_rhs[i].first.str(pflag) << '\n';
+        }
+    }
     if (m_controls.size()) {
+        int refctrl = 0;
         os << " Controls:\n    ";
         for (unsigned i = 0; i < m_controls.size() - 1; ++i) {
             os << m_controls[i].first.str(pflag) << ", ";
+            if (m_controls[i].third != "") ++refctrl;
         }
         os << m_controls.back().first.str(pflag) << '\n';
+        if (m_controls.back().third != "") ++refctrl;
+
+        if (refctrl) {
+            os << " Controls referenced from other model blocks:\n    ";
+            int count = 0;
+            for (unsigned i = 0; i < m_controls.size(); ++i) {
+                if (m_controls[i].third != "") {
+                    os << m_controls[i].first.str(pflag) << '@'
+                       << m_controls[i].third;
+                    ++count;
+                    if (count < refctrl) os << ", "; else os << '\n';
+                }
+            }
+        }
 
         os << " Objective:\n    ";
-        os << m_obj_var.str(pflag) << " = " << m_obj_eq.str(pflag);
+        os << m_obj_var.str(pflag) << " = " << m_obj_eq_in.str(pflag);
         if (m_obj_lm) os << "    (" << m_obj_lm.str(pflag) << ')';
         os << '\n';
 
@@ -683,6 +718,17 @@ Model_block::write_logfile(std::ostream &os, bool static_model) const
             for (unsigned i = m_lagr_mult.size(); i < m_constraints.size(); ++i) {
                 os << "    " << m_constraints[i].first.str(pflag)
                    << " = 0    (auxiliary)\n";
+            }
+        }
+        if (m_constraints_ref.size()) {
+            os << " Constraints referencing equations in other blocks:\n";
+            for (unsigned i = 0; i < m_constraints_ref.size(); ++i) {
+                os << "    ";
+                if (m_constraints_ref[i].second == objective) os << "objective";
+                else if (m_constraints_ref[i].second == constraints) os << "constraints";
+                else if (m_constraints_ref[i].second == focs) os << "first order conditions";
+                else if (m_constraints_ref[i].second == identities) os << "identities";
+                os << " @ " << m_constraints_ref[i].first << '\n';
             }
         }
     }
@@ -714,29 +760,6 @@ Model_block::write_logfile(std::ostream &os, bool static_model) const
 
     os << '\n';
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

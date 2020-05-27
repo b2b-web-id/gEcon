@@ -1,12 +1,12 @@
-/***********************************************************
- * (c) Kancelaria Prezesa Rady Ministrów 2012-2015         *
- * Treść licencji w pliku 'LICENCE'                        *
- *                                                         *
- * (c) Chancellery of the Prime Minister 2012-2015         *
- * License terms can be found in the file 'LICENCE'        *
- *                                                         *
- * Author: Grzegorz Klima                                  *
- ***********************************************************/
+/*****************************************************************************
+ * This file is a part of gEcon.                                             *
+ *                                                                           *
+ * (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015 *
+ * (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018   *
+ * License terms can be found in the file 'LICENCE'                          *
+ *                                                                           *
+ * Author: Grzegorz Klima                                                    *
+ *****************************************************************************/
 
 /** \file ex_idx.cpp
  * \brief Indexed expression.
@@ -55,25 +55,25 @@ ex_idx::compare(const ex_idx &b) const
 
 
 std::string
-ex_idx::str(int pflag) const
+ex_idx::str(int pflag, bool c_style) const
 {
     if (pflag & INDEXING_ONLY) {
-        return m_ie.str() + m_e->str(pflag);
+        return m_ie.str() + m_e->str(pflag, c_style);
     } else if (pflag & DROP_INDEXING) {
-        return get_ptr()->str(pflag);
+        return get_ptr()->str(pflag, c_style);
     }
 
     std::string res = m_ie.str();
     res += " ";
-    return res + m_e->str(pflag);
+    return res + m_e->str(pflag, c_style);
 }
 
 
 std::string
-ex_idx::strmap(const map_str_str &mss) const
+ex_idx::strmap(const map_str_str &mss, bool c_style) const
 {
     USER_ERROR("ex_idx::strmap() called")
-    return m_e->strmap(mss);
+    return m_e->strmap(mss, c_style);
 }
 
 

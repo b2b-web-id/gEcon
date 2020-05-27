@@ -1,12 +1,12 @@
-/***********************************************************
- * (c) Kancelaria Prezesa Rady Ministrów 2012-2015         *
- * Treść licencji w pliku 'LICENCE'                        *
- *                                                         *
- * (c) Chancellery of the Prime Minister 2012-2015         *
- * License terms can be found in the file 'LICENCE'        *
- *                                                         *
- * Author: Grzegorz Klima                                  *
- ***********************************************************/
+/*****************************************************************************
+ * This file is a part of gEcon.                                             *
+ *                                                                           *
+ * (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015 *
+ * (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018   *
+ * License terms can be found in the file 'LICENCE'                          *
+ *                                                                           *
+ * Author: Grzegorz Klima                                                    *
+ *****************************************************************************/
 
 /** \file ex_e.cpp
  * \brief Expected value (conditional - time indexed).
@@ -53,24 +53,24 @@ ex_e::compare(const ex_e &b) const
 
 
 std::string
-ex_e::str(int pflag) const
+ex_e::str(int pflag, bool c_style) const
 {
     if (pflag & INDEXING_ONLY) return std::string();
     if (pflag & CONVERT_T) {
-        if (m_lag < 0) return "E__tm" + num2str(-m_lag) + '[' + m_arg->str(pflag) + ']';
-        if (m_lag == 0) return "E__t[" + m_arg->str(pflag) + ']';
-        return "E__tp" + num2str(m_lag) + '[' + m_arg->str(pflag) + ']';
+        if (m_lag < 0) return "E__tm" + num2str(-m_lag) + '[' + m_arg->str(pflag, c_style) + ']';
+        if (m_lag == 0) return "E__t[" + m_arg->str(pflag, c_style) + ']';
+        return "E__tp" + num2str(m_lag) + '[' + m_arg->str(pflag, c_style) + ']';
     } else if (pflag & DROP_T) {
         USER_ERROR("invalid print flag in ex_e::str()")
     } else {
-        return (m_lag) ? "E[" + num2str(m_lag) + "][" + m_arg->str(pflag) + ']':
-                            "E[][" + m_arg->str(pflag) + ']';
+        return (m_lag) ? "E[" + num2str(m_lag) + "][" + m_arg->str(pflag, c_style) + ']':
+                            "E[][" + m_arg->str(pflag, c_style) + ']';
     }
 }
 
 
 std::string
-ex_e::strmap(const map_str_str &mss) const
+ex_e::strmap(const map_str_str &mss, bool c_style) const
 {
     return m_arg->strmap(mss);
 }

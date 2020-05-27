@@ -1,12 +1,12 @@
-/***********************************************************
- * (c) Kancelaria Prezesa Rady Ministrów 2012-2015         *
- * Treść licencji w pliku 'LICENCE'                        *
- *                                                         *
- * (c) Chancellery of the Prime Minister 2012-2015         *
- * License terms can be found in the file 'LICENCE'        *
- *                                                         *
- * Author: Grzegorz Klima                                  *
- ***********************************************************/
+/*****************************************************************************
+ * This file is a part of gEcon.                                             *
+ *                                                                           *
+ * (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015 *
+ * (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018   *
+ * License terms can be found in the file 'LICENCE'                          *
+ *                                                                           *
+ * Author: Grzegorz Klima                                                    *
+ *****************************************************************************/
 
 /** \file idx_set.cpp
  * \brief Index set.
@@ -121,6 +121,8 @@ idx_set::suffix(const std::string &s) const
 bool
 idx_set::operator<=(const idx_set &b) const
 {
+    if (!operator bool()) return true;
+    if (!b) return false;
     for (idx_set_impl::const_iterator it = m_p->begin(); it != m_p->end(); ++it)
         if (!b.has(*it)) return false;
     return true;

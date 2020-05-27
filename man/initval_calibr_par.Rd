@@ -5,42 +5,46 @@
 Setting initial values of calibrated parameters
 }
 \description{
-The \code{initval_calibr_par} function enables setting the initial values of calibrated parameters for the nonlinear solver searching for the steady state of dynamic models (equilibrium for static models) and the values of calibrated parameters. If not set by this function, the default values of parameters are assumed to be 0.5.
+The \code{initval_calibr_par} function enables setting the initial values of calibrated parameters 
+for the non-linear steady-state (equilibrium) solver or their expected values if calibration is omitted. 
+If not set by this function, parameters' values are set to 0.5 by default.
 }
 \usage{
-initval_calibr_par(model, calibr_par)
+initval_calibr_par(model, calibr_par, warnings = TRUE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{model}{
-an object of the \code{gecon_model} class.
+an object of \code{gecon_model} class.
 }
   \item{calibr_par}{
-a named list or a vector of parameters.
+a named list or vector of calibrated parameters' initial values.
 }
+  \item{warnings}{logical, should warnings be displayed?}
 }
 \details{
-The values of parameters passed to the \code{gecon_model} are treated as initial values for the steady-state solver when the user specifies calibrating equations in a .gcn file and requests that \code{steady_state} function shall use it. If the calibration is omitted, the initial values of calibrated parameters are treated as their final values, so one has to specify the right set of calibrated parameters values when decides to omit the calibrating equations.
+The values of calibrated parameters passed to the object of \code{gecon_model} class are treated as initial values for the steady-state solver 
+when the user specifies calibrating equations in a .gcn file and requests that the \code{steady_state} function shall use it. 
+If the calibration is omitted, the initial values of calibrated parameters are treated as their final values. 
+Calibrated parameters have to be set to correct values upon the decision to make calibrating equations inactive.
 }
 \value{
-An object of the \code{gecon_model} class representing the model. Generic functions such as \code{print} and \code{summary} allow to show the model's elements. The \code{\link{get_par_values}} function return parameter values.
-}
-\author{
-Karol Podemski \email{karol.podemski@gmail.com}, \cr
-Kaja Retkiewicz-Wijtiwiak \email{kaja.retkiewicz@gmail.com}
+An updated object of \code{gecon_model} class representing the model. 
+Generic functions such as \code{print} and \code{summary} allow to show the model's elements. 
+The \code{\link{get_par_values}} function returns parameters' values.
 }
 \examples{
 # copy the example to the current working directory
-file.copy(from = file.path(system.file("examples", package = 'gEcon'),
-          'rbc.gcn'), to = getwd())
+file.copy(from = file.path(system.file("examples", package = "gEcon"),
+          "rbc.gcn"), to = getwd())
 
 # make and load the model
-rbc <- make_model('rbc.gcn')
+rbc <- make_model("rbc.gcn")
 
-# set initial values for the calibrated parameters
+# set initial values for calibrated parameters
 rbc <- initval_calibr_par(rbc, calibr_par=list(alpha = 0.4))
 
-# find the steady state and values of the calibrated parameters
+# find the steady state and values of calibrated parameters
 rbc <- steady_state(rbc)
-get_par_values(rbc, c('alpha'))
+get_par_values(rbc, c("alpha"))
 }

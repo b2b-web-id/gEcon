@@ -1,12 +1,12 @@
-/***********************************************************
- * (c) Kancelaria Prezesa Rady Ministrów 2012-2015         *
- * Treść licencji w pliku 'LICENCE'                        *
- *                                                         *
- * (c) Chancellery of the Prime Minister 2012-2015         *
- * License terms can be found in the file 'LICENCE'        *
- *                                                         *
- * Author: Grzegorz Klima                                  *
- ***********************************************************/
+/*****************************************************************************
+ * This file is a part of gEcon.                                             *
+ *                                                                           *
+ * (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015 *
+ * (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018   *
+ * License terms can be found in the file 'LICENCE'                          *
+ *                                                                           *
+ * Author: Grzegorz Klima                                                    *
+ *****************************************************************************/
 
 /** \file model.cpp
  * \brief Class representing general equilibrium model.
@@ -19,6 +19,7 @@
 #include <fstream>
 #include <cstdlib>
 #include <ctime>
+#include <climits>
 
 using symbolic::internal::num2str;
 using symbolic::internal::print_flag;
@@ -33,73 +34,79 @@ using symbolic::triplet;
 
 #define INTERNAL_ERROR throw(std::runtime_error(std::string("internal error in file ") +\
                              __FILE__ + ", line " + symbolic::internal::num2str(__LINE__)));
+#ifdef DEBUG
+#define DEBUG_INFO(x) std::cerr << "DEBUG INFO: " << (x) << '\n';
+#else
+#define DEBUG_INFO(x)
+#endif
+
+
+namespace {
+
+std::string
+num_name_str(int n, const std::string &name)
+{
+    std::string mes = num2str(n);
+    mes += ' ';
+    mes += name;
+    if (n != 1) mes += "s";
+    return mes;
+}
+
+} /* namespace */
+
 
 
 void
 Model::do_it()
 {
-#ifdef DEBUG
-    std::cerr << "Preliminary check\n";
-#endif /* DEBUG */
+    DEBUG_INFO("preliminary check")
     terminate_on_errors();
-#ifdef DEBUG
-    std::cerr << "Checking options\n";
-#endif /* DEBUG */
+
+    // options
+    DEBUG_INFO("checking options")
     check_options();
     if (m_options[verbose]) {
-        std::string mes = "model has " + num2str((unsigned) m_blocks.size()) + " block";
-        if (m_blocks.size() > 1) mes += 's';
+        std::string mes = "model has " + num_name_str(m_blocks.size(), "block");
         mes += ": " + m_blocks[0].m_name;
         for (unsigned i = 1; i < m_blocks.size(); ++i)
             mes += ", " + m_blocks[i].m_name;
         write_model_info(mes);
     }
-#ifdef DEBUG
-    std::cerr << "Checking indices\n";
-#endif /* DEBUG */
+
+    // indices
+    DEBUG_INFO("checking indices")
     check_indices();
     check_findices();
     terminate_on_errors();
-#ifdef DEBUG
-    std::cerr << "Checking definitions\n";
-#endif /* DEBUG */
+
+    // checks
+    DEBUG_INFO("checking variables selected for reduction (1/2)")
+    check_red_vars1();
+    DEBUG_INFO("checking definitions")
     check_defs();
     terminate_on_errors();
-#ifdef DEBUG
-    std::cerr << "Checking names in blocks before definition substitution\n";
-#endif /* DEBUG */
+    DEBUG_INFO("checking names in blocks before definition substitution")
     check_names();
     terminate_on_errors();
-#ifdef DEBUG
-    std::cerr << "Substituting definitions\n";
-#endif /* DEBUG */
+    DEBUG_INFO("substituting definitions")
     subst_defs();
-#ifdef DEBUG
-    std::cerr << "Checking if model is deterministic\n";
-#endif /* DEBUG */
+    DEBUG_INFO("checking if model is deterministic")
     check_deter();
-#ifdef DEBUG
-    std::cerr << "Checking Lagrange multipliers\n";
-#endif /* DEBUG */
+    DEBUG_INFO("checking Lagrange multipliers")
     check_lagr();
-//     terminate_on_errors();
-#ifdef DEBUG
-    std::cerr << "Checking objective functions and controls\n";
-#endif /* DEBUG */
+    DEBUG_INFO("checking references")
+    check_refs();
+    terminate_on_errors();
+    DEBUG_INFO("checking objective functions and controls")
     check_obj_contr();
     terminate_on_errors();
-#ifdef DEBUG
-    std::cerr << "Checking / handling leads\n";
-#endif /* DEBUG */
+    DEBUG_INFO("checking / handling leads")
     leads();
     terminate_on_errors();
-#ifdef DEBUG
-    std::cerr << "Checking / handling lags\n";
-#endif /* DEBUG */
+    DEBUG_INFO("checking / handling lags")
     lags();
-#ifdef DEBUG
-    std::cerr << "Checking if model is static\n";
-#endif /* DEBUG */
+    DEBUG_INFO("checking if model is static")
     check_static();
     terminate_on_errors();
     if (m_options[verbose]) {
@@ -113,104 +120,83 @@ Model::do_it()
             }
         }
     }
-#ifdef DEBUG
-    std::cerr << "Checking references\n";
-#endif /* DEBUG */
-    check_refs();
-    terminate_on_errors();
-#ifdef DEBUG
-    std::cerr << "Deriving FOCs\n";
-#endif /* DEBUG */
+
+    // FOC derivation
+    DEBUG_INFO("deriving FOCs")
     derive_focs();
-#ifdef DEBUG
-    std::cerr << "Collecting shocks\n";
-#endif /* DEBUG */
+
+    // collecting variables, shocks & parameters
+    DEBUG_INFO("collecting shocks")
     collect_shocks();
-#ifdef DEBUG
-    std::cerr << "Collecting variables and parameters\n";
-#endif /* DEBUG */
+    terminate_on_errors();
+    DEBUG_INFO("collecting variables and parameters")
     collect_vp();
-// #ifdef DEBUG
-//     std::cerr << "Collecting Lagrange multipliers\n";
-// #endif /* DEBUG */
-//     collect_lagr();
-//     terminate_on_errors();
-#ifdef DEBUG
-    std::cerr << "Collecting model equations\n";
-#endif /* DEBUG */
+    DEBUG_INFO("collecting model equations")
     collect_eq();
-#ifdef DEBUG
-    std::cerr << "Collecting calibration equations\n";
-#endif /* DEBUG */
+    DEBUG_INFO("collecting calibration equations")
     collect_calibr();
     terminate_on_errors();
     if (m_options[verbose]) {
-        write_model_info("model has " + num2str((unsigned) m_eqs.size())
-                         + " equations with " + num2str((unsigned) m_vars.size())
-                         + " variables");
-        write_model_info("model has " + num2str((unsigned) m_calibr.size())
-                         + " calibrating equations and " + num2str((unsigned) m_params_calibr.size())
-                         + " non-free (calibrated) parameters");
+        write_model_info("model has " + num_name_str(m_eqs.size(), "equation")
+                         + " with " + num_name_str(m_vars.size(), "variable"));
+        write_model_info("model has "
+                         + num_name_str(m_calibr.size(), "calibrating equation")
+                         + " and "
+                         + num_name_str(m_params_calibr.size(), "non-free (calibrated) parameter"));
     }
-#ifdef DEBUG
-    std::cerr << "Reducing model equations\n";
-#endif /* DEBUG */
-    check_red_vars();
+
+    // variable reduction
+    DEBUG_INFO("reducing model equations")
+    check_red_vars2();
     terminate_on_errors();
     reduce();
     terminate_on_errors();
     if (m_options[verbose]) {
-        write_model_info("after reduction the model has " + num2str((unsigned) m_eqs.size())
-                         + " equations with " + num2str((unsigned) m_vars.size())
-                         + " variables");
+        write_model_info("after reduction the model has "
+                         + num_name_str(m_eqs.size(), "equation")
+                         + " with " + num_name_str(m_vars.size(), "variable"));
     }
-#ifdef DEBUG
-    std::cerr << "Constructing variables / equations equations map\n";
-#endif /* DEBUG */
+
+    // maps, steady state & derivatives
+    DEBUG_INFO("constructing variables / equations equations map")
     var_eq_map();
-#ifdef DEBUG
-    std::cerr << "Constructing shocks / equations map\n";
-#endif /* DEBUG */
+    DEBUG_INFO("constructing shocks / equations map")
     shock_eq_map();
     terminate_on_errors();
-#ifdef DEBUG
-    std::cerr << "Determining steady state equations\n";
-#endif /* DEBUG */
+    DEBUG_INFO("determining steady state equations")
     stst();
     terminate_on_errors();
-#ifdef DEBUG
-    std::cerr << "Constructing variables / calibrating equations map\n";
-#endif /* DEBUG */
+    DEBUG_INFO("constructing variables / calibrating equations map")
     var_ceq_map();
-#ifdef DEBUG
-    std::cerr << "Constructing parameter / equations, calibrating equations maps\n";
-#endif /* DEBUG */
+    DEBUG_INFO("constructing parameter / equations, calibrating equations maps")
     par_eq_map();
     par_ceq_map();
-#ifdef DEBUG
-    std::cerr << "Determining steady state equations Jacobian\n";
-#endif /* DEBUG */
-    ss_jacob();
-#ifdef DEBUG
-    std::cerr << "Differentiating equations for 1st order perturbation\n";
-#endif /* DEBUG */
+    if (m_options[output_r_jacobian]) {
+        DEBUG_INFO("determining steady state equations Jacobian")
+        ss_jacob();
+    }
+    DEBUG_INFO("differentiating equations for the 1st order perturbation")
     diff_eqs();
 }
 
 
-
+// options
+// =============================================================================
 std::string
 Model::get_option_name(int o)
 {
     switch (o) {
-        case Model::backwardcomp: return "backwardcomp";
+        case Model::silent: return "silent";
         case Model::verbose: return "verbose";
+        case Model::warnings_opt: return "warnings";
         case Model::output_logf: return "output logfile";
         case Model::output_latex: return "output LaTeX";
         case Model::output_latex_long: return "output LaTeX long";
         case Model::output_latex_landscape: return "output LaTeX landscape";
         case Model::output_r: return "output R";
         case Model::output_r_long: return "output R long";
+        case Model::output_r_jacobian: return "output R Jacobian";
+        case Model::output_r_rcpp: return "output R Rcpp";
         default:
             INTERNAL_ERROR
     }
@@ -223,24 +209,38 @@ Model::check_options()
 {
 #ifdef R_DLL
     if (!m_options[output_r]) {
-        warning("ignoring option \"output R = false;\"");
+        warning("ignoring option \"output R = false;\"", 0);
     }
 #endif /* R_DLL */
+    if (m_options[verbose] && m_options[silent]) {
+        m_options[silent] = false;
+        warning("option \"verbose = true;\" overrides \"silent = true;\"", 0);
+    }
+    
     if (m_options_set[output_latex_long] && !m_options[output_latex]) {
-        warning("ignoring option \"output LaTeX long\" when LaTeX output is turned off");
+        warning("ignoring option \"output LaTeX long\" when LaTeX output is turned off", 0);
     }
+    
+    if (m_options[output_r_rcpp] && m_options[output_r_long]) {
+        m_options[output_r_rcpp] = false;
+        warning("ignoring option output R rcpp when R long option is turned on", 0);
+    }
+    
     if (m_options_set[output_latex_landscape] && !m_options[output_latex]) {
-        warning("ignoring option \"output LaTeX landscape\" when LaTeX output is turned off");
+        warning("ignoring option \"output LaTeX landscape\" when LaTeX output is turned off", 0);
     }
+    
     for (int i = 0; i < OPTIONS_LENGTH; ++i) {
         if (m_options_set[i] > 1) {
             warning("option \"" + get_option_name(i) + "\" set more than once; assuming the last setting ("
-                    + (m_options[i] ? "true)" : "false)"));
+                    + (m_options[i] ? "true)" : "false)"), 0);
         }
     }
 }
 
 
+// indices
+// =============================================================================
 void
 Model::error_sindices(const std::set<unsigned> &is, const ex &e, int lineno)
 {
@@ -255,9 +255,8 @@ Model::error_sindices(const std::set<unsigned> &is, const ex &e, int lineno)
     for (++it; it != is.end(); ++it) {
         mes += ", \"" +  ref.get_str(*it) + '\"';
     }
-    mes += ") in expression \"" + e.str(DROP_INDEXING) + "\"; error near line "
-        + num2str(lineno);
-    error(mes);
+    mes += ") in expression \"" + e.str(DROP_INDEXING) + "\"";
+    error(mes, lineno);
 }
 
 
@@ -265,8 +264,8 @@ Model::error_sindices(const std::set<unsigned> &is, const ex &e, int lineno)
 void
 Model::check_indices()
 {
-    for (std::vector<exint>::const_iterator it = m_redvars_v.begin();
-         it != m_redvars_v.end(); ++it) {
+    for (std::vector<exint>::const_iterator it = m_v_redvars.begin();
+         it != m_v_redvars.end(); ++it) {
         ex e = it->first;
         int line = it->second;
         std::set<unsigned> iset;
@@ -299,14 +298,14 @@ iset.clear();
                     error("lhs in definition (\""+ e.str() +"\") is missing "
                           + m_blocks[i].get_name(true) + "'s block index \""
                           + symbolic::internal::stringhash::get_instance().get_str(m_blocks[i].m_i2.get_id())
-                          + "\"; error near line " + num2str(line));
+                          + "\"", line);
             }
             if (m_blocks[i].m_i1) {
                 if (iset.find(m_blocks[i].m_i1.get_id()) == iset.end())
                     error("lhs in definition (\""+ e.str() +"\") is missing "
                           + m_blocks[i].get_name(true) + "'s block index \""
                           + symbolic::internal::stringhash::get_instance().get_str(m_blocks[i].m_i1.get_id())
-                          + "\"; error near line " + num2str(line));
+                          + "\"", line);
             }
             iset.clear();
             line = m_blocks[i].m_defs_rhs[j].second;
@@ -324,14 +323,14 @@ iset.clear();
                     error("control variable (\""+ e.str() +"\") is missing "
                           + m_blocks[i].get_name(true) + "'s block index \""
                           + symbolic::internal::stringhash::get_instance().get_str(m_blocks[i].m_i2.get_id())
-                          + "\"; error near line " + num2str(line));
+                          + "\"", line);
             }
             if (m_blocks[i].m_i1) {
                 if (iset.find(m_blocks[i].m_i1.get_id()) == iset.end())
                     error("control variable (\""+ e.str() +"\") is missing "
                           + m_blocks[i].get_name(true) + "'s block index \""
                           + symbolic::internal::stringhash::get_instance().get_str(m_blocks[i].m_i1.get_id())
-                          + "\"; error near line " + num2str(line));
+                          + "\"", line);
             }
             iset.clear();
         }
@@ -344,16 +343,16 @@ iset.clear();
             if (m_blocks[i].m_i2) {
                 if (iset.find(m_blocks[i].m_i2.get_id()) == iset.end())
                     error("objective variable (\""+ e.str() +"\") is missing "
-                            + m_blocks[i].get_name(true) + "'s block index \""
-                            + symbolic::internal::stringhash::get_instance().get_str(m_blocks[i].m_i2.get_id())
-                            + "\"; error near line " + num2str(line));
+                          + m_blocks[i].get_name(true) + "'s block index \""
+                          + symbolic::internal::stringhash::get_instance().get_str(m_blocks[i].m_i2.get_id())
+                          + "\"", line);
             }
             if (m_blocks[i].m_i1) {
                 if (iset.find(m_blocks[i].m_i1.get_id()) == iset.end())
                     error("objective variable (\""+ e.str() +"\") is missing "
-                            + m_blocks[i].get_name(true) + "'s block index \""
-                            + symbolic::internal::stringhash::get_instance().get_str(m_blocks[i].m_i1.get_id())
-                            + "\"; error near line " + num2str(line));
+                          + m_blocks[i].get_name(true) + "'s block index \""
+                          + symbolic::internal::stringhash::get_instance().get_str(m_blocks[i].m_i1.get_id())
+                          + "\"", line);
             }
             iset.clear();
         }
@@ -367,16 +366,16 @@ iset.clear();
             if (m_blocks[i].m_i2) {
                 if (iset.find(m_blocks[i].m_i2.get_id()) == iset.end())
                     error("Lagrange multiplier on objective equation (time aggregator) (\""+ e.str() +"\") is missing "
-                            + m_blocks[i].get_name(true) + "'s block index \""
-                            + symbolic::internal::stringhash::get_instance().get_str(m_blocks[i].m_i2.get_id())
-                            + "\"; error near line " + num2str(line));
+                          + m_blocks[i].get_name(true) + "'s block index \""
+                          + symbolic::internal::stringhash::get_instance().get_str(m_blocks[i].m_i2.get_id())
+                          + "\"", line);
             }
             if (m_blocks[i].m_i1) {
                 if (iset.find(m_blocks[i].m_i1.get_id()) == iset.end())
                     error("Lagrange multiplier on objective equation (time aggregator) (\""+ e.str() +"\") is missing "
-                            + m_blocks[i].get_name(true) + "'s block index \""
-                            + symbolic::internal::stringhash::get_instance().get_str(m_blocks[i].m_i1.get_id())
-                            + "\"; error near line " + num2str(line));
+                          + m_blocks[i].get_name(true) + "'s block index \""
+                          + symbolic::internal::stringhash::get_instance().get_str(m_blocks[i].m_i1.get_id())
+                          + "\"", line);
             }
             iset.clear();
         }
@@ -396,16 +395,16 @@ iset.clear();
                 if (m_blocks[i].m_i2) {
                     if (iset.find(m_blocks[i].m_i2.get_id()) == iset.end())
                         error("Lagrange multiplier (\""+ e.str() +"\") is missing "
-                                + m_blocks[i].get_name(true) + "'s block index \""
-                                + symbolic::internal::stringhash::get_instance().get_str(m_blocks[i].m_i2.get_id())
-                                + "\"; error near line " + num2str(line));
+                              + m_blocks[i].get_name(true) + "'s block index \""
+                              + symbolic::internal::stringhash::get_instance().get_str(m_blocks[i].m_i2.get_id())
+                              + "\"", line);
                 }
                 if (m_blocks[i].m_i1) {
                     if (iset.find(m_blocks[i].m_i1.get_id()) == iset.end())
                         error("Lagrange multiplier (\""+ e.str() +"\") is missing "
-                                + m_blocks[i].get_name(true) + "'s block index \""
-                                + symbolic::internal::stringhash::get_instance().get_str(m_blocks[i].m_i1.get_id())
-                                + "\"; error near line " + num2str(line));
+                              + m_blocks[i].get_name(true) + "'s block index \""
+                              + symbolic::internal::stringhash::get_instance().get_str(m_blocks[i].m_i1.get_id())
+                              + "\"", line);
                 }
                 iset.clear();
             }
@@ -455,9 +454,8 @@ Model::error_findices(const std::map<unsigned, unsigned> &im, const ex &e, int l
     for (++it; it != im.end(); ++it) {
         mes += ", \"" +  ref.get_str(it->first) + '\"';
     }
-    mes += ") in expression \"" + e.str() + "\"; error near line "
-        + num2str(lineno);
-    error(mes);
+    mes += ") in expression \"" + e.str() + "\"";
+    error(mes, lineno);
 }
 
 
@@ -465,8 +463,8 @@ Model::error_findices(const std::map<unsigned, unsigned> &im, const ex &e, int l
 void
 Model::check_findices()
 {
-    for (std::vector<exint>::const_iterator iit = m_redvars_v.begin();
-         iit != m_redvars_v.end(); ++iit) {
+    for (std::vector<exint>::const_iterator iit = m_v_redvars.begin();
+         iit != m_v_redvars.end(); ++iit) {
         ex e = iit->first;
         int line = iit->second;
         std::map<unsigned, unsigned> imap;
@@ -557,6 +555,32 @@ imap.clear();
 
 
 
+// checks
+// =============================================================================
+void
+Model::check_red_vars1()
+{
+    std::vector<exint>::const_iterator it = m_v_redvars.begin();
+    for (; it != m_v_redvars.end(); ++it) {
+        ex e = it->first;
+        int line = it->second;
+        if (e.get_lag_max()) {
+            error("variable(s) \"" + lag0(e).str()
+                  + "\" selected for reduction listed in lead/lag", line);
+            continue;
+        }
+        vec_ex rv = expand(e);
+        vec_ex::const_iterator iit = rv.begin();
+        for (; iit != rv.end(); ++iit) {
+            if (m_s_redvars.find(*iit) != m_s_redvars.end()) {
+                warning("variable \"" + e.str() + "\" already selected for reduction", line);
+            } else {
+                m_s_redvars.insert(*iit);
+            }
+        }
+    }
+}
+
 
 void
 Model::check_defs()
@@ -567,45 +591,44 @@ Model::check_defs()
         for (unsigned d = 0, D = m_blocks[i].m_defs_lhs.size(); d < D; ++d) {
             ex lhs = m_blocks[i].m_defs_lhs[d].first;
             ex rhs = m_blocks[i].m_defs_rhs[d].first;
-            if (lhs.hast()) {
-                int l;
-                if ((l = lhs.get_lag_max())) {
-                    lhs = lag(lhs, -l);
-                    error("\"" + lhs.str() + "\" defined in lead/lag; error near line "
-                          + num2str(m_blocks[i].m_defs_lhs[d].second));
-                }
-                if (!rhs.hast()) {
+            if (lhs.is_var()) {
+                if (lhs.get_lag_max()) {
+                    error("\"" + lag0(lhs).str() + "\" defined in lead/lag",
+                          m_blocks[i].m_defs_lhs[d].second);
+                } else if (!rhs.hast()) {
                     error("variable \"" + lhs.str() + "\" defined as constant expression \""
-                          + rhs.str() + "\"; error near line "
-                          + num2str(m_blocks[i].m_defs_lhs[d].second));
+                          + rhs.str() + "\"", m_blocks[i].m_defs_lhs[d].second);
+                } else { // ok
+                    vec_ex vdef = expand(ex(i1, ex(i2, lhs)));
+                    vec_ex::const_iterator iit = vdef.begin();
+                    for (; iit != vdef.end(); ++iit) {
+                        if (m_s_redvars.find(*iit) != m_s_redvars.end()) {
+                            warning("variable \"" + iit->str()
+                                    + "\" selected for reduction appears on the LHS of definition in "
+                                    + m_blocks[i].m_name + " block", m_blocks[i].m_defs_lhs[d].second);
+                        }
+                    }
                 }
-                vec_ex vdef = expand(ex(i1, ex(i2, lhs)));
-                vec_ex::const_iterator iit = vdef.begin();
-                for (; iit != vdef.end(); ++iit) {
-                    m_def_vars.insert(exstr(*iit, m_blocks[i].m_name));
-                }
-
             } else {
                 if (rhs.hast()) {
-                    error("constant \"" + lhs.str() + "\" defined as variable expression \""
-                          + rhs.str() + "\"; error near line "
-                          + num2str(m_blocks[i].m_defs_lhs[d].second));
+                    error("parameter \"" + lhs.str() + "\" defined as variable expression \""
+                          + rhs.str() + "\"", m_blocks[i].m_defs_lhs[d].second);
                 }
             }
             if (!m_blocks[i].m_defs.insert(lhs).second) {
-                error("\"" + lhs.str() + "\" already defined; error near line "
-                        + num2str(m_blocks[i].m_defs_lhs[d].second));
+                error("\"" + lhs.str() + "\" already defined",
+                      m_blocks[i].m_defs_lhs[d].second);
             }
             if (rhs.has(lhs, ANY_T, false)) {
-                error("\"" + lhs.str() + "\" used in its own definition; error near line "
-                        + num2str(m_blocks[i].m_defs_lhs[d].second));
+                error("\"" + lhs.str() + "\" used in its own definition",
+                      m_blocks[i].m_defs_lhs[d].second);
             }
             for (unsigned dd = d + 1; dd < D; ++dd) {
                 ex rhsf = m_blocks[i].m_defs_rhs[dd].first;
                 if (rhsf.has(lhs, ANY_T, false)) {
                     error("\"" + lhs.str() + "\" appears in definition following "
-                          "the definition of \"" + lhs.str() + "\" itself; error near line "
-                            + num2str(m_blocks[i].m_defs_lhs[dd].second));
+                          "the definition of \"" + lhs.str() + "\" itself",
+                          m_blocks[i].m_defs_lhs[dd].second);
                 }
             }
         }
@@ -617,6 +640,8 @@ Model::check_defs()
 void
 Model::check_names()
 {
+    // NOTE: this check is within each block before substitution,
+    // this is checked again after all variables and parameters are collected
     for (unsigned i = 0, n = m_blocks.size(); i < n; ++i) {
         set_ex vars, params;
         m_blocks[i].collect_vp(vars, params, true);
@@ -630,13 +655,11 @@ Model::check_names()
             std::string name = it->str();
             if (!names.insert(name).second) {
                 error("\"" + name + "\" treated both as a variable and a parameter in block "
-                      + m_blocks[i].m_name + "; you might have forgotten \"[]\"");
+                      + m_blocks[i].m_name + "; you might have forgotten \"[]\"", 0);
             }
         }
     }
 }
-
-
 
 
 
@@ -645,195 +668,6 @@ Model::subst_defs()
 {
     for (unsigned i = 0, n = m_blocks.size(); i < n; ++i) {
         m_blocks[i].subst_defs();
-    }
-}
-
-
-
-void
-Model::check_lagr()
-{
-    for (unsigned i = 0, n = m_blocks.size(); i < n; ++i) {
-        ex lmin = m_blocks[i].m_obj_lm_in;
-        idx_ex i1 = m_blocks[i].m_i1;
-        idx_ex i2 = m_blocks[i].m_i2;
-        int l;
-        if (lmin) {
-            if ((l = lmin.get_lag_max())) {
-                error("Lagrange multiplier  \"" + lag(lmin, -l).str() + "\" declared in lead / lag;"
-                      + " error near line " + num2str(m_blocks[i].m_obj_line));
-            }
-            vec_ex vlmin = expand(ex(i1, ex(i2, lmin)));
-            vec_ex::const_iterator iit = vlmin.begin();
-            for (; iit != vlmin.end(); ++iit) {
-                if (!m_lagr_mult_in.insert(exstr(*iit, m_blocks[i].m_name)).second) {
-                    error("Lagrange multiplier \"" + iit->str() + "\" already used;"
-                        + " error near line " + num2str(m_blocks[i].m_obj_line));
-                }
-                if (m_options[backwardcomp]) {
-                    warning("in backward compatibility mode; adding Lagrange multiplier \""
-                            + iit->str() + "\" to list of variables for reduction");
-                    m_redvars.insert(*iit);
-                }
-            }
-        }
-        std::vector<exint>::const_iterator it, ite;
-        unsigned ll = 0, LL = m_blocks[i].m_lagr_mult_in.size();
-        for (; ll < LL; ++ll) {
-            lmin = m_blocks[i].m_lagr_mult_in[ll].first;
-            if (lmin) {
-                if ((l = lmin.get_lag_max())) {
-                    error("Lagrange multiplier  \"" + lag(lmin, -l).str() + "\" declared in lead / lag;"
-                        + " error near line " + num2str(m_blocks[i].m_lagr_mult_in[l].second));
-                }
-                vec_ex vlmin = expand(ex(i1, ex(i2, lmin)));
-                vec_ex::const_iterator iit = vlmin.begin();
-                for (; iit != vlmin.end(); ++iit) {
-                    if (!m_lagr_mult_in.insert(exstr(*iit, m_blocks[i].m_name)).second) {
-                        error("Lagrange multiplier \"" + iit->str() + "\" already used;"
-                            + " error near line " + num2str(m_blocks[i].m_obj_line));
-                    }
-                    if (m_options[backwardcomp]) {
-                        warning("in backward compatibility mode; adding Lagrange multiplier \""
-                                + iit->str() + "\" to list of variables for reduction");
-                        m_redvars.insert(*iit);
-                    }
-                }
-            }
-        }
-    }
-}
-
-
-
-void
-Model::check_obj_contr()
-{
-    for (unsigned i = 0, n = m_blocks.size(); i < n; ++i) {
-        idx_ex i1 = m_blocks[i].m_i1;
-        idx_ex i2 = m_blocks[i].m_i2;
-        ex obj = m_blocks[i].m_obj_var;
-        if (obj) {
-            int l;
-            if ((l = obj.get_lag_max())) {
-                error("objective variable \"" + lag(obj, -l).str() + "\" on LHS of " + m_blocks[i].m_name
-                      + "\'s problem is in lag different than 0; error near line "
-                      + num2str(m_blocks[i].m_obj_line));
-            }
-            if (m_blocks[i].m_obj_eq.has(lag(obj, 1), DIFF_T)) {
-                error("objective variable \"" + obj.str() + "\" on RHS of " + m_blocks[i].m_name
-                      + "\'s problem is in lead/lag different than 1; "
-                      + "error near line " + num2str(m_blocks[i].m_obj_line));
-            }
-            if (!m_blocks[i].m_obj_eq.has(lag(obj, 1), EXACT_T)) {
-                m_blocks[i].m_static = true;
-            }
-            for (unsigned j = 0, J = m_blocks[i].m_constraints.size(); j < J; ++j) {
-                if (m_blocks[i].m_constraints[j].first.has(lag(obj, 1), DIFF_T)) {
-                    error("objective variable \"" + obj.str() + "\" in " + m_blocks[i].m_name
-                        + "\'s problem's constraint is in lead/lag different than 1; "
-                        + "error near line " + num2str(m_blocks[i].m_constraints[j].second));
-                }
-            }
-            vec_ex vobj = expand(ex(i1, ex(i2, obj)));
-            vec_ex::const_iterator iit = vobj.begin();
-            for (; iit != vobj.end(); ++iit) {
-                if (!m_obj.insert(exstr(*iit, m_blocks[i].m_name)).second) {
-                    error("objective variable \"" + iit->str() + "\" in " + m_blocks[i].m_name
-                        + "\'s problem repeated as objective variable in " + m_obj.find(*iit)->second
-                        + "\'s problem; error near line " + num2str(m_blocks[i].m_obj_line));
-                }
-                if (m_lagr_mult_in.find(*iit) != m_lagr_mult_in.end()) {
-                    error("objective variable \"" + iit->str() + "\" in " + m_blocks[i].m_name
-                        + "\'s problem is Lagrange multiplier in " + m_lagr_mult_in.find(*iit)->second
-                        + "\'s problem; error near line " + num2str(m_blocks[i].m_obj_line));
-                }
-            }
-        }
-    }
-
-    for (unsigned i = 0, n = m_blocks.size(); i < n; ++i) {
-        for (unsigned c = 0, C = m_blocks[i].m_controls.size(); c < C; ++c) {
-            ex contr = m_blocks[i].m_controls[c].first;
-            int l;
-            bool any = false;
-            if ((l = contr.get_lag_max())) {
-                contr = lag(contr, -l);
-                error("control variable \"" + contr.str() + "\" in " + m_blocks[i].m_name
-                      + "\'s problem lag is " + num2str(l) + "; error near line "
-                      + num2str(m_blocks[i].m_controls[c].second));
-            }
-            if (m_blocks[i].m_defs.find(contr) != m_blocks[i].m_defs.end()) {
-                error("control variable \"" + contr.str() + "\" in "
-                      + m_blocks[i].m_name + "\'s problem was used in definitions "
-                      + "(substituted); error near line "
-                      + num2str(m_blocks[i].m_controls[c].second));
-            }
-            if (m_blocks[i].m_obj_eq.has(contr, ANY_T, false)) any = true;
-            if (m_blocks[i].m_obj_eq.has(contr, LEAD_T, false)) {
-                error("control variable \"" + contr.str() + "\" in " + m_blocks[i].m_name
-                      + "\'s problem is in lead; error near line "
-                      + num2str(m_blocks[i].m_obj_line));
-            }
-            for (unsigned j = 0, J = m_blocks[i].m_constraints.size(); j < J; ++j) {
-                if (m_blocks[i].m_constraints[j].first.has(contr, ANY_T, false)) any = true;
-                if (m_blocks[i].m_constraints[j].first.has(contr, LEAD_T, false)) {
-                    error("control variable \"" + contr.str() + "\" in " + m_blocks[i].m_name
-                        + "\'s problem is in lead; error near line "
-                        + num2str(m_blocks[i].m_constraints[j].second));
-                }
-            }
-            int ln = m_blocks[i].m_controls[c].second;
-            std::string ref = m_blocks[i].m_controls[c].third;
-            if (!any && ref.empty()) {
-                error("control variable \"" + contr.str() + "\" in " + m_blocks[i].m_name
-                    + "\'s problem does not appear in objective nor in any constraint; error near line "
-                    + num2str(ln));
-            }
-            if (!ref.empty()) {
-                unsigned b = 0;
-                while (m_blocks[b].m_name != ref) ++b;
-                if (!m_blocks[b].has_ref(contr))
-                    error("variable \"" + contr.str() + "\" referenced in " + m_blocks[i].m_name
-                            + "\'s problem does not appear in " + ref
-                            + "\'s problem; only objective variables, control variables "
-                            + "and Langrange multipliers should be referenced; error near line "
-                            + num2str(ln));
-            }
-            idx_ex i1 = m_blocks[i].m_i1;
-            idx_ex i2 = m_blocks[i].m_i2;
-            m_blocks[i].m_contr.insert(contr);
-            vec_ex vcontr = expand(ex(i1, ex(i2, contr)));
-            vec_ex::const_iterator iit = vcontr.begin();
-            for (; iit != vcontr.end(); ++iit) {
-                if (!m_blocks[i].m_contr_exp.insert(*iit).second) {
-                    error("control variable \"" + iit->str() + "\" in "
-                        + m_blocks[i].m_name + "\'s problem is duplicated; error near line "
-                        + num2str(ln));
-                }
-                if (ref.empty()) {
-                    if (m_obj.find(*iit) != m_obj.end()) {
-                        error("control variable \"" + iit->str() + "\" in " + m_blocks[i].m_name
-                              + "\'s problem is objective variable in " + m_obj.find(*iit)->second
-                              + "\'s problem; error near line " + num2str(ln));
-                    }
-                    if (m_lagr_mult_in.find(*iit) != m_lagr_mult_in.end()) {
-                        error("control variable \"" + iit->str() + "\" in " + m_blocks[i].m_name
-                              + "\'s problem is Lagrange multiplier in " + m_lagr_mult_in.find(*iit)->second
-                              + "\'s problem; error near line " + num2str(ln));
-                    }
-                    if (!m_contr.insert(exstr(*iit, m_blocks[i].m_name)).second) {
-                        warning("control variable \"" + iit->str() + "\" in "
-                                + m_blocks[i].m_name + "\'s problem is control variable in "
-                                + m_contr.find(*iit)->second + "\'s problem; "
-                                + "if this was intentional you might consider rewriting your model in terms "
-                                + "of two different controls and adding equilibrium condition equating them, "
-                                + "one of them could then be selected for reduction; "
-                                + "warning near line "+ num2str(ln));
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -852,21 +686,19 @@ Model::check_deter()
     for (unsigned i = 0, n = m_blocks.size(); i < n; ++i) {
         ex eq = m_blocks[i].m_obj_eq;
         int l = m_blocks[i].m_obj_line;
-        if (eq.has_Es() > 0) {
+        if (eq.has_Es()) {
             warning("dropping expectation in objective \""
                     + m_blocks[i].m_obj_var.str() + " = " + eq.str()
-                    + "\"; model is deterministic (has no shocks); "
-                    + "warning near line " + num2str(l));
+                    + "\"; model is deterministic (has no shocks)", l);
             m_blocks[i].m_obj_eq = drop_Es(m_blocks[i].m_obj_eq);
             m_blocks[i].m_obj_eq_in = drop_Es(m_blocks[i].m_obj_eq_in);
         }
         for (unsigned e = 0; e < m_blocks[i].m_constraints.size(); ++e) {
             eq = m_blocks[i].m_constraints[e].first;
             l = m_blocks[i].m_constraints[e].second;
-            if (eq.has_Es() > 0) {
+            if (eq.has_Es()) {
                 warning("dropping expectation in constraint \""
-                        + eq.str() + " = 0\"; model is deterministic (has no shocks); "
-                        + "warning near line " + num2str(l));
+                        + eq.str() + " = 0\"; model is deterministic (has no shocks)", l);
                 m_blocks[i].m_constraints[e].first =
                     drop_Es(m_blocks[i].m_constraints[e].first);
             }
@@ -874,12 +706,287 @@ Model::check_deter()
         for (unsigned e = 0; e < m_blocks[i].m_identities.size(); ++e) {
             eq = m_blocks[i].m_identities[e].first;
             l = m_blocks[i].m_identities[e].second;
-            if (eq.has_Es() > 0) {
+            if (eq.has_Es()) {
                 warning("dropping expectation in identity \""
-                        + eq.str() + " = 0\"; model is deterministic (has no shocks); "
-                        + "warning near line " + num2str(l));
+                        + eq.str() + " = 0\"; model is deterministic (has no shocks)", l);
                 m_blocks[i].m_identities[e].first =
                     drop_Es(m_blocks[i].m_identities[e].first);
+            }
+        }
+    }
+}
+
+
+
+void
+Model::check_lagr()
+{
+    for (unsigned i = 0, n = m_blocks.size(); i < n; ++i) {
+        ex lmin = m_blocks[i].m_obj_lm_in;
+        idx_ex i1 = m_blocks[i].m_i1;
+        idx_ex i2 = m_blocks[i].m_i2;
+        if (lmin) {
+            if ((lmin.get_lag_max())) {
+                error("Lagrange multiplier  \"" + lag0(lmin).str() + "\" declared in lead/lag",
+                      m_blocks[i].m_obj_line);
+            }
+            vec_ex vlmin = expand(ex(i1, ex(i2, lmin)));
+            vec_ex::const_iterator iit = vlmin.begin();
+            for (; iit != vlmin.end(); ++iit) {
+                if (!m_lagr_mult_in.insert(exstr(*iit, m_blocks[i].m_name)).second) {
+                    error("Lagrange multiplier \"" + iit->str() + "\" already used",
+                          m_blocks[i].m_obj_line);
+                }
+            }
+        }
+        unsigned ll = 0, LL = m_blocks[i].m_lagr_mult_in.size();
+        for (; ll < LL; ++ll) {
+            lmin = m_blocks[i].m_lagr_mult_in[ll].first;
+            if (lmin) {
+                if ((lmin.get_lag_max())) {
+                    error("Lagrange multiplier  \"" + lag0(lmin).str() + "\" declared in lead/lag",
+                          m_blocks[i].m_lagr_mult_in[ll].second);
+                }
+                vec_ex vlmin = expand(ex(i1, ex(i2, lmin)));
+                vec_ex::const_iterator iit = vlmin.begin();
+                for (; iit != vlmin.end(); ++iit) {
+                    if (!m_lagr_mult_in.insert(exstr(*iit, m_blocks[i].m_name)).second) {
+                        error("Lagrange multiplier \"" + iit->str() + "\" already used",
+                              m_blocks[i].m_lagr_mult_in[ll].second);
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+void
+Model::check_refs()
+{
+    for (unsigned i = 0, n = m_blocks.size(); i < n; ++i) {
+        std::set<std::pair<std::string, int> > refs;
+        for (unsigned c = 0; c < m_blocks[i].m_controls.size(); ++c) {
+            if (m_blocks[i].m_controls[c].third == "") continue;
+            unsigned b = 0;
+            std::string bname = m_blocks[i].m_controls[c].third;
+            while ((m_blocks[b].m_name != bname) && (b + 1 < n)) ++b;
+            if (m_blocks[b].m_name != bname) ++b;
+            if (b == n) {
+                error("block \"" + bname + "\" does not exis", m_blocks[i].m_controls[c].second);
+                continue;
+            } else if (b > i) {
+                error("reference to block \"" + bname + "\""
+                      + " that is declared after \"" + m_blocks[i].m_name + "\"",
+                      m_blocks[i].m_controls[c].second);
+                continue;
+            } else if (b == i) {
+                error("reference to block \"" + bname + "\" within itself",
+                      m_blocks[i].m_controls[c].second);
+                continue;
+            }
+        }
+
+        for (unsigned r = 0; r < m_blocks[i].m_constraints_ref.size(); ++r) {
+            strintint rf = m_blocks[i].m_constraints_ref[r];
+            unsigned b = 0;
+            while ((m_blocks[b].m_name != rf.first) && (b + 1 < n)) ++b;
+            if (m_blocks[b].m_name != rf.first) ++b;
+            if (b == n) {
+                error("block \"" + rf.first + "\" does not exist", rf.third);
+                continue;
+            } else if (b > i) {
+                error("reference to block \"" + rf.first + "\""
+                      + " that is declared after \"" + m_blocks[i].m_name + "\"",
+                      rf.third);
+                continue;
+            } else if (b == i) {
+                error("reference to block \"" + rf.first + "\" within itself",
+                      rf.third);
+                continue;
+            }
+            std::string what;
+            if (rf.second == Model_block::objective) {
+                what = "objective";
+                if (!m_blocks[b].m_obj_var) {
+                    error("undefined reference to " + what + " in block \""
+                          + rf.first + "\"", rf.third);
+                }
+            } else if (rf.second == Model_block::constraints) {
+                what = "constraints";
+                if (!m_blocks[b].m_constraints.size()
+                    && !m_blocks[b].m_constraints_ref.size())
+                    error("undefined reference to " + what + " in block \""
+                          + rf.first + "\"", rf.third);
+            } else if (rf.second == Model_block::focs) {
+                what = "first order conditions";
+                if (!m_blocks[b].m_controls.size())
+                    error("undefined reference to " + what + " in block \""
+                          + rf.first + "\"", rf.third);
+            } else if (rf.second == Model_block::identities) {
+                what = "identities";
+                if (!m_blocks[b].m_identities.size())
+                    error("undefined reference to " + what + " in block \""
+                          + rf.first + "\"", rf.third);
+            } else INTERNAL_ERROR
+                if (!refs.insert(std::pair<std::string, int>(rf.first, rf.second)).second) {
+                    error("repeated reference to " + what + " in block \""
+                          + rf.first + "\"", rf.third);
+                }
+        }
+    }
+}
+
+
+
+void
+Model::check_obj_contr()
+{
+    for (unsigned i = 0, n = m_blocks.size(); i < n; ++i) {
+        idx_ex i1 = m_blocks[i].m_i1;
+        idx_ex i2 = m_blocks[i].m_i2;
+        ex obj = m_blocks[i].m_obj_var;
+        if (obj) {
+            if (obj.get_lag_max()) {
+                error("objective variable \"" + lag0(obj).str() + "\" on LHS of "
+                      + m_blocks[i].m_name + "\'s problem is in lag different than 0",
+                      m_blocks[i].m_obj_line);
+                obj = lag0(obj);
+            }
+            if (m_blocks[i].m_obj_eq.has(lag(obj, 1), DIFF_T)) {
+                error("objective variable \"" + obj.str() + "\" on RHS of " + m_blocks[i].m_name
+                      + "\'s problem is in lead/lag different than 1",
+                      m_blocks[i].m_obj_line);
+            }
+            if (!m_blocks[i].m_obj_eq.has(lag(obj, 1), EXACT_T)) {
+                m_blocks[i].m_static = true;
+                if (m_blocks[i].m_obj_lm_in) {
+                    error("Lagrange multiplier on objective (time aggregator) declared in static problem",
+                          m_blocks[i].m_obj_line);
+                }
+            }
+            for (unsigned j = 0, J = m_blocks[i].m_constraints.size(); j < J; ++j) {
+                if (m_blocks[i].m_constraints[j].first.has(lag(obj, 1), DIFF_T)) {
+                    error("objective variable \"" + obj.str() + "\" in " + m_blocks[i].m_name
+                          + "\'s problem's constraint is in lead/lag different than 1",
+                          m_blocks[i].m_constraints[j].second);
+                }
+            }
+            vec_ex vobj = expand(ex(i1, ex(i2, obj)));
+            vec_ex::const_iterator iit = vobj.begin();
+            for (; iit != vobj.end(); ++iit) {
+                if (!m_obj.insert(exstr(*iit, m_blocks[i].m_name)).second) {
+                    error("objective variable \"" + iit->str() + "\" in " + m_blocks[i].m_name
+                          + "\'s problem repeated as objective variable in " + m_obj.find(*iit)->second
+                          + "\'s problem", m_blocks[i].m_obj_line);
+                }
+                if (m_lagr_mult_in.find(*iit) != m_lagr_mult_in.end()) {
+                    error("objective variable \"" + iit->str() + "\" in " + m_blocks[i].m_name
+                          + "\'s problem is Lagrange multiplier in " + m_lagr_mult_in.find(*iit)->second
+                          + "\'s problem", m_blocks[i].m_obj_line);
+                }
+            }
+        }
+    }
+
+    for (unsigned i = 0, n = m_blocks.size(); i < n; ++i) {
+        for (unsigned c = 0, C = m_blocks[i].m_controls.size(); c < C; ++c) {
+            ex contr = m_blocks[i].m_controls[c].first;
+            bool any = false;
+            if (contr.get_lag_max()) {
+                contr = lag0(contr);
+                error("control variable \"" + contr.str() + "\" in " + m_blocks[i].m_name
+                      + "\'s problem is listed in lag different than 0",
+                      m_blocks[i].m_controls[c].second);
+            }
+            if (m_blocks[i].m_defs.find(contr) != m_blocks[i].m_defs.end()) {
+                error("control variable \"" + contr.str() + "\" in "
+                      + m_blocks[i].m_name + "\'s problem was used in definitions "
+                      + "(substituted)", m_blocks[i].m_controls[c].second);
+            }
+            if (m_blocks[i].m_obj_eq.has(contr, ANY_T, false)) any = true;
+            if (m_blocks[i].m_obj_eq.has(contr, LEAD_T, false)) {
+                error("control variable \"" + contr.str() + "\" in " + m_blocks[i].m_name
+                      + "\'s problem is in lead", m_blocks[i].m_obj_line);
+            }
+            for (unsigned j = 0, J = m_blocks[i].m_constraints.size(); j < J; ++j) {
+                if (m_blocks[i].m_constraints[j].first.has(contr, ANY_T, false)) any = true;
+                if (m_blocks[i].m_constraints[j].first.has(contr, LEAD_T, false)) {
+                    error("control variable \"" + contr.str() + "\" in " + m_blocks[i].m_name
+                          + "\'s problem is in lead", m_blocks[i].m_constraints[j].second);
+                }
+            }
+            int ln = m_blocks[i].m_controls[c].second;
+            std::string ref = m_blocks[i].m_controls[c].third;
+            if (!any) {
+                for (unsigned r = 0; r < m_blocks[i].m_constraints_ref.size(); ++r) {
+                    strintint rf = m_blocks[i].m_constraints_ref[r];
+                    unsigned b = 0;
+                    while (m_blocks[b].m_name != rf.first) ++b;
+                    if ((rf.second == Model_block::objective)
+                        || (rf.second == Model_block::focs)) {
+                        if (m_blocks[b].m_obj_eq.has(contr, ANY_T, false)) any = true;
+                    }
+                    if ((rf.second == Model_block::constraints)
+                        || (rf.second == Model_block::focs)) {
+                        for (unsigned j = 0, J = m_blocks[b].m_constraints.size(); j < J; ++j) {
+                            if (m_blocks[b].m_constraints[j].first.has(contr, ANY_T, false))
+                                any = true;
+                        }
+                    }
+                    if (rf.second == Model_block::identities) {
+                        for (unsigned j = 0, J = m_blocks[b].m_constraints.size(); j < J; ++j) {
+                            if (m_blocks[b].m_identities[j].first.has(contr, ANY_T, false))
+                                any = true;
+                        }
+                    }
+                    if (any) break;
+                }
+            }
+            if (!any) {
+                error("control variable \"" + contr.str() + "\" in " + m_blocks[i].m_name
+                      + "\'s problem does not appear in objective nor in any constraint", ln);
+            }
+            if (!ref.empty()) {
+                unsigned b = 0;
+                while (m_blocks[b].m_name != ref) ++b;
+                if (!m_blocks[b].has_ref(contr))
+                    error("variable \"" + contr.str() + "\" referenced in " + m_blocks[i].m_name
+                          + "\'s problem does not appear in " + ref
+                          + "\'s problem; only objective variables, control variables "
+                          + "and Langrange multipliers should be referenced", ln);
+            }
+            idx_ex i1 = m_blocks[i].m_i1;
+            idx_ex i2 = m_blocks[i].m_i2;
+            m_blocks[i].m_contr.insert(contr);
+            vec_ex vcontr = expand(ex(i1, ex(i2, contr)));
+            vec_ex::const_iterator iit = vcontr.begin();
+            for (; iit != vcontr.end(); ++iit) {
+                if (!m_blocks[i].m_contr_exp.insert(*iit).second) {
+                    error("control variable \"" + iit->str() + "\" in "
+                          + m_blocks[i].m_name + "\'s problem is duplicated", ln);
+                }
+                if (ref.empty()) {
+                    if (m_obj.find(*iit) != m_obj.end()) {
+                        error("control variable \"" + iit->str() + "\" in " + m_blocks[i].m_name
+                              + "\'s problem is objective variable in " + m_obj.find(*iit)->second
+                              + "\'s problem", ln);
+                    }
+                    if (m_lagr_mult_in.find(*iit) != m_lagr_mult_in.end()) {
+                        error("control variable \"" + iit->str() + "\" in " + m_blocks[i].m_name
+                              + "\'s problem is Lagrange multiplier in " + m_lagr_mult_in.find(*iit)->second
+                              + "\'s problem", ln);
+                    }
+                    if (!m_contr.insert(exstr(*iit, m_blocks[i].m_name)).second) {
+                        warning("control variable \"" + iit->str() + "\" in "
+                                + m_blocks[i].m_name + "\'s problem is control variable in "
+                                + m_contr.find(*iit)->second + "\'s problem; "
+                                + "if this was intentional you might consider rewriting your model in terms "
+                                + "of two different controls and adding equilibrium condition equating them, "
+                                + "one of them could then be selected for reduction", ln);
+                    }
+                }
             }
         }
     }
@@ -898,8 +1005,7 @@ Model::leads()
             if (eq.get_lag_max(true) > 0) {
                 error("forward looking variable(s) in objective \""
                       + m_blocks[i].m_obj_var.str() + " = " + eq.str()
-                      + "\" outside expected value operator in a stochastic model; "
-                      + "error near line " + num2str(l));
+                      + "\" outside expected value operator in a stochastic model", l);
             }
             for (unsigned e = 0; e < m_blocks[i].m_constraints.size(); ++e) {
                 eq = m_blocks[i].m_constraints[e].first;
@@ -907,7 +1013,7 @@ Model::leads()
                 if (eq.get_lag_max(true) > 0) {
                     error("forward looking variable(s) in constraint \""
                         + eq.str() + " = 0\" outside expected value operator "
-                        + "in a stochastic model; error near line " + num2str(l));
+                        + "in a stochastic model", l);
                 }
             }
             for (unsigned e = 0; e < m_blocks[i].m_identities.size(); ++e) {
@@ -916,7 +1022,7 @@ Model::leads()
                 if (eq.get_lag_max(true) > 0) {
                     error("forward looking variable(s) in identity \""
                         + eq.str() + " = 0\" outside expected value operator "
-                        + "in a stochastic model; error near line " + num2str(l));
+                        + "in a stochastic model", l);
                 }
             }
         }
@@ -927,7 +1033,7 @@ Model::leads()
         if ((mlag = eq.get_lag_max()) > 1) {
             error("variable(s) in objective \""
                     + m_blocks[i].m_obj_var.str() + " = " + eq.str()
-                    + "\" in lead > 1; error near line " + num2str(l));
+                    + "\" in lead > 1", l);
         }
         if (mlag > m_max_lag) m_max_lag = mlag;
         for (unsigned e = 0; e < m_blocks[i].m_constraints.size(); ++e) {
@@ -935,7 +1041,7 @@ Model::leads()
             l = m_blocks[i].m_constraints[e].second;
             if ((mlag = eq.get_lag_max()) > 1) {
                 error("variable(s) in constraint \""
-                      + eq.str() + " = 0\" in lead > 1; error near line " + num2str(l));
+                      + eq.str() + " = 0\" in lead > 1", l);
             }
             if (mlag > m_max_lag) m_max_lag = mlag;
         }
@@ -944,7 +1050,7 @@ Model::leads()
             l = m_blocks[i].m_identities[e].second;
             if ((mlag = eq.get_lag_max()) > 1) {
                 error("variable(s) in identity \""
-                    + eq.str() + " = 0\" in lead > 1; error near line " + num2str(l));
+                    + eq.str() + " = 0\" in lead > 1", l);
             }
             if (mlag > m_max_lag) m_max_lag = mlag;
         }
@@ -995,65 +1101,14 @@ Model::check_static()
 {
     if ((m_min_lag == 0) && (m_max_lag == 0)) m_static = true;
     if (m_static && !m_deter) {
-        error("model is static (has no lags and leads) but has shocks; static models must also be deterministic");
-    }
-    for (unsigned i = 0, n = m_blocks.size(); i < n; ++i) {
-        if (m_blocks[i].m_static) {
-            if (m_blocks[i].m_obj_lm_in) {
-                if (m_options[backwardcomp]) {
-                    warning("in backward compatibility mode, ignoring declaration of Lagrange multiplier on objective (time aggregator) in static problem; warning near line " + num2str(m_blocks[i].m_obj_line));
-                    m_blocks[i].m_redlm.erase(m_blocks[i].m_obj_lm);
-                    m_blocks[i].m_obj_lm = ex();
-                } else {
-                    error("Lagrange multiplier on objective (time aggregator) declared in static problem; please remove it or force acceptance of your code using \"backwardcomp\" option; error near line " + num2str(m_blocks[i].m_obj_line));
-                }
-            }
-        }
+        error("model is static (has no lags and leads) but has shocks; static models must also be deterministic", 0);
     }
 }
 
 
-void
-Model::check_refs()
-{
-    for (unsigned i = 0, n = m_blocks.size(); i < n; ++i) {
-        std::set<std::pair<std::string, int> > refs;
-        for (unsigned r = 0; r < m_blocks[i].m_constraints_ref.size(); ++r) {
-            strintint rf = m_blocks[i].m_constraints_ref[r];
-            unsigned b = 0;
-            while (m_blocks[b].m_name != rf.first) ++b;
-            std::string what;
-            if (rf.second == objective) {
-                what = "objective";
-                if (!m_blocks[b].m_obj_var)
-                    error("undefined reference to " + what + " in block \""
-                        + rf.first + "\"; error near line " + num2str(rf.third));
-            } else if (rf.second == constraints) {
-                what = "constraints";
-                if (!m_blocks[b].m_constraints.size()
-                    && !m_blocks[b].m_constraints_ref.size())
-                    error("undefined reference to " + what + " in block \""
-                        + rf.first + "\"; error near line " + num2str(rf.third));
-            } else if (rf.second == focs) {
-                what = "first order conditions";
-                if (!m_blocks[b].m_controls.size())
-                    error("undefined reference to " + what + " in block \""
-                        + rf.first + "\"; error near line " + num2str(rf.third));
-            } else if (rf.second == identities) {
-                what = "identities";
-                if (!m_blocks[b].m_identities.size())
-                    error("undefined reference to " + what + " in block \""
-                        + rf.first + "\"; error near line " + num2str(rf.third));
-            } else INTERNAL_ERROR
-            if (!refs.insert(std::pair<std::string, int>(rf.first, rf.second)).second) {
-                error("repeated reference to "+ what + " in block \""
-                      + rf.first + "\"; error near line " + num2str(rf.third));
-            }
-        }
-    }
-}
 
-
+// FOC derivation
+// =============================================================================
 void
 Model::derive_focs()
 {
@@ -1066,7 +1121,7 @@ Model::derive_focs()
                 while (m_blocks[b].m_name != rf.first) ++b;
                 Model_block &bref = m_blocks[b];
                 Model_block &bcurr = m_blocks[i];
-                if (rf.second == objective) {
+                if (rf.second == Model_block::objective) {
                     ex eq = bref.m_obj_var - bref.m_obj_eq;
                     eq = ex(bref.m_i2, eq);
                     eq = ex(bref.m_i1, eq);
@@ -1079,7 +1134,7 @@ Model::derive_focs()
                     lam = apply_idx(lam, eq);
                     bcurr.m_lagr_mult.push_back(exint(lam, 0));
                     bcurr.m_redlm.insert(lam);
-                } else if (rf.second == constraints) {
+                } else if (rf.second == Model_block::constraints) {
                     for (unsigned j = 0; j < bref.m_constraints.size(); ++j) {
                         ex eq = bref.m_constraints[j].first;
                         ex lam = ex("lambda__" + bcurr.m_name + "_" + num2str(1 + (unsigned) bcurr.m_lagr_mult.size()), 0);
@@ -1095,9 +1150,9 @@ Model::derive_focs()
                         bcurr.m_lagr_mult.push_back(exint(lam, 0));
                         bcurr.m_redlm.insert(lam);
                     }
-                } else if (rf.second == focs) {
-                    for (unsigned j = 0; j < bref.m_focs.size(); ++j) {
-                        ex eq = bref.m_focs[j].first;
+                } else if (rf.second == Model_block::focs) {
+                    for (unsigned j = 0; j < bref.m_focs_red.size(); ++j) {
+                        ex eq = bref.m_focs_red[j].first;
                         ex lam = ex("lambda__" + bcurr.m_name + "_" + num2str(1 + (unsigned) bcurr.m_lagr_mult.size()), 0);
                         eq = ex(bref.m_i2, eq);
                         eq = ex(bref.m_i1, eq);
@@ -1111,7 +1166,7 @@ Model::derive_focs()
                         bcurr.m_lagr_mult.push_back(exint(lam, 0));
                         bcurr.m_redlm.insert(lam);
                     }
-                } else if (rf.second == identities) {
+                } else if (rf.second == Model_block::identities) {
                     for (unsigned j = 0; j < bref.m_identities.size(); ++j) {
                         ex eq = bref.m_identities[j].first;
                         ex lam = ex("lambda__" + bcurr.m_name + "_" + num2str(1 + (unsigned) bcurr.m_lagr_mult.size()), 0);
@@ -1132,22 +1187,24 @@ Model::derive_focs()
         }
         // Derive FOCs
         if (m_blocks[i].m_static) {
-            m_blocks[i].focs_static();
+            m_blocks[i].derive_focs_static();
         } else if (m_deter) {
-            m_blocks[i].focs_deter();
+            m_blocks[i].derive_focs_deter();
         } else {
-            m_blocks[i].focs();
+            m_blocks[i].derive_focs();
         }
         for (int f = 0, F = m_blocks[i].m_focs.size(); f < F; ++f) {
             if (!m_blocks[i].m_focs[f].first)
                 warning("one of your first order conditions (w.r.t. \""
                         + m_blocks[i].m_focs[f].second.str() + "\") in " + m_blocks[i].m_name +
-                        "\'s problem is of the form 0 = 0;");
+                        "\'s problem is of the form 0 = 0", 0);
         }
     }
 }
 
 
+// collecting variables, shocks & parameters
+// =============================================================================
 void
 Model::collect_shocks()
 {
@@ -1156,15 +1213,15 @@ Model::collect_shocks()
         it = m_blocks[i].m_shocks.begin();
         ite = m_blocks[i].m_shocks.end();
         for (; it != ite; ++it) {
+            if (it->first.get_lag_max()) {
+                error("shock \"" + lag0(it->first).str() + "\" declared in lead/lag",
+                      it->second);
+                continue;
+            }
             if (m_blocks[i].m_defs.find(it->first) != m_blocks[i].m_defs.end()) {
                 error("shock \"" + it->first.str() + "\" declared in "
                       + m_blocks[i].m_name + "\'s block was used in definitions "
-                      + "(substituted); error near line " + num2str(it->second));
-                continue;
-            }
-            if (it->first.get_lag_max()) {
-                error("shock \"" + it->first.str() + "\" declared in lead / lag;"
-                      + " error near line " + num2str(it->second));
+                      + "(substituted)", it->second);
                 continue;
             }
             idx_ex i1 = m_blocks[i].m_i1;
@@ -1173,23 +1230,19 @@ Model::collect_shocks()
             vec_ex::const_iterator iit = shocks.begin();
             for (; iit != shocks.end(); ++iit) {
                 if (!m_shocks.insert(*iit).second) {
-                    error("shock " + iit->str() + " already declared;"
-                        + " error near line " + num2str(it->second));
+                    error("shock " + iit->str() + " already declared", it->second);
                 }
                 if (m_obj.find(*iit) != m_obj.end()) {
                     error(m_obj.find(*iit)->second + "\'s objective variable \""
-                          + iit->str() + "\" declared as shock;"
-                          + " error near line " + num2str(it->second));
+                          + iit->str() + "\" declared as shock", it->second);
                 }
                 if (m_contr.find(*iit) != m_contr.end()) {
                     error(m_contr.find(*iit)->second + "\'s control variable \""
-                          + iit->str() + "\" declared as shock;"
-                          + " error near line " + num2str(it->second));
+                          + iit->str() + "\" declared as shock", it->second);
                 }
                 if (m_lagr_mult_in.find(*iit) != m_lagr_mult_in.end()) {
                     error(m_lagr_mult_in.find(*iit)->second + "\'s Lagrange multiplier \""
-                          + iit->str() + "\" declared as shock;"
-                          + " error near line " + num2str(it->second));
+                          + iit->str() + "\" declared as shock", it->second);
                 }
             }
         }
@@ -1211,6 +1264,7 @@ const char* namescomments[] = {
     "Bar", "Hey, try and be more creative ;-)",
     "BAR", "Hey, try and be more creative ;-)",
     "foobar", "Hey, try and be more creative ;-)",
+    "foo_bar", "Hey, try and be more creative ;-)",
     "FOOBAR", "Hey, try and be more creative ;-)",
     "FOO_BAR", "Hey, try and be more creative ;-)",
 ""};
@@ -1222,7 +1276,7 @@ easter_eggs(Model &model, const std::set<std::string> &names)
     for (unsigned i = 0; namescomments[i][0]; i += 2) {
         std::string nm = namescomments[i];
         if (names.find(nm) != names.end())
-            model.warning("\"" + nm + "\"? " + namescomments[i + 1]);
+            model.warning("\"" + nm + "\"? " + namescomments[i + 1], 0);
     }
 }
 
@@ -1237,7 +1291,7 @@ Model::collect_vp()
         m_blocks[i].collect_vp(m_vars, m_params);
     }
     if (!m_vars.size()) {
-        error("the model has no variables");
+        error("the model has no variables", 0);
         terminate_on_errors();
     }
 
@@ -1256,14 +1310,14 @@ Model::collect_vp()
         std::string name = it->str();
         if (!names.insert(name).second) {
             error("\"" + name + "\" treated both as a variable and a parameter; you "
-                  "might have forgotten \"[]\"");
+                  "might have forgotten \"[]\"", 0);
         }
     }
     names.insert(m_names.begin(), m_names.end());
     easter_eggs(*this, names);
     for (it = m_shocks.begin(); it != m_shocks.end(); ++it) {
         if (m_vars.find(*it) == m_vars.end()) {
-            warning("shock \"" + it->str() + "\" does not appear in any model equation");
+            warning("shock \"" + it->str() + "\" does not appear in any model equation", 0);
         } else m_vars.erase(*it);
     }
 }
@@ -1326,27 +1380,27 @@ Model::collect_eq()
         itep = m_blocks[i].m_focs_red.end();
         for (; itp != itep; ++itp) {
             ex e = ex(i1, ex(i2, itp->first));
-            m_t_eqs.insert(e);
             vec_ex eqs = expand(e);
             vec_ex::const_iterator iit = eqs.begin();
             for (; iit != eqs.end(); ++iit) {
                 if (!m_eqs.insert(*iit).second) {
-                    warning("repeating equation: " + itp->first.str() + " = 0");
+                    warning("repeating equation: \"" + itp->first.str() + " = 0\"", 0);
                 }
             }
+            if (eqs.size()) m_t_eqs.insert(e);
         }
         if (m_blocks[i].m_obj_eq) {
             ex lhs = m_blocks[i].m_obj_var, rhs = m_blocks[i].m_obj_eq;
             ex e = ex(i1, ex(i2, lhs - rhs));
-            m_t_eqs.insert(e);
             vec_ex eqs = expand(e);
             vec_ex::const_iterator iit = eqs.begin();
             for (; iit != eqs.end(); ++iit) {
                 if (!m_eqs.insert(*iit).second) {
                     warning("equation for " + m_blocks[i].m_name + "\'s objective \""
-                            + m_blocks[i].m_obj_eq.str() + "\" is duplicated");
+                            + m_blocks[i].m_obj_eq.str() + "\" is duplicated", 0);
                 }
             }
+            if (eqs.size()) m_t_eqs.insert(e);
         }
         std::vector<exint>::const_iterator it, ite;
         it = m_blocks[i].m_constraints.begin();
@@ -1354,40 +1408,40 @@ Model::collect_eq()
         for (; it != ite; ++it) {
             bool internal = (it->second <= 0);
             ex e = ex(i1, ex(i2, it->first));
-            m_t_eqs.insert(e);
             vec_ex eqs = expand(e);
             vec_ex::const_iterator iit = eqs.begin();
             for (; iit != eqs.end(); ++iit) {
                 if ((!m_eqs.insert(*iit).second) && (!internal)) {
-                    warning("repeating constraint: \"" + iit->str() + " = 0\" "
-                            + "near line " + num2str(it->second));
+                    warning("repeating constraint: \"" + iit->str() + " = 0\"",
+                            it->second);
                 }
             }
+            if (eqs.size()) m_t_eqs.insert(e);
         }
         it = m_blocks[i].m_identities.begin();
         ite = m_blocks[i].m_identities.end();
         for (; it != ite; ++it) {
             bool internal = !(it->second);
             ex e = ex(i1, ex(i2, it->first));
-            m_t_eqs.insert(e);
             vec_ex eqs = expand(e);
             vec_ex::const_iterator iit = eqs.begin();
             for (; iit != eqs.end(); ++iit) {
                 if ((!m_eqs.insert(*iit).second) && (!internal)) {
-                    warning("repeating identity: \"" + iit->str() + " = 0\" "
-                            + "near line " + num2str(it->second));
+                    warning("repeating identity: \"" + iit->str() + " = 0\"",
+                            it->second);
                 }
             }
+            if (eqs.size()) m_t_eqs.insert(e);
         }
     }
 
     if (!m_eqs.size()) {
-        error("the model has no equations");
+        error("the model has no equations", 0);
         terminate_on_errors();
     }
     unsigned nv = m_vars.size(), ne = m_eqs.size();
     if (nv != ne) {
-        error(mk_diff_no_error(nv, "variable", ne, "model equation"));
+        error(mk_diff_no_error(nv, "variable", ne, "model equation"), 0);
     }
 }
 
@@ -1406,15 +1460,25 @@ Model::collect_calibr()
             ex ceq = m_blocks[i].m_calibr[j].first;
             int lineno = m_blocks[i].m_calibr[j].second;
             if (!ceq) {
-                error("calibrating equation \"0 = 0\"; error near line " + num2str(lineno));
+                error("calibrating equation \"0 = 0\"", lineno);
                 continue;
             }
             if (m_static) {
-                ceq = ss(ceq);
+                set_ex v, p;
+                collect(ceq, v, p);
+                bool ok = true;
+                for (set_ex::const_iterator it = v.begin(); it != v.end(); ++it) {
+                    if (ceq.has(*it, DIFF_T)) {
+                        error("variable \"" + it->str() + "\" in calibrating equation \"" + ceq.str()
+                              + "\" has invalid time index (model is static)", lineno);
+                        ok = false;
+                    }
+                }
+                if (!ok) continue;
             } else {
                 if (ceq.hast()) {
-                    error("calibrating equation with non-steady state values: \"" + ceq.str()
-                        + " = 0\"; error near line " + num2str(lineno));
+                    error("calibrating equation with non-steady-state values: \"" + ceq.str()
+                          + " = 0\"", lineno);
                     continue;
                 }
             }
@@ -1422,9 +1486,9 @@ Model::collect_calibr()
             if (ps.first) {
                 if (m_blocks[i].m_calibr_pl[j].size()) {
                     error("equation \"" + ps.second.str() + " = " + ps.third.str()
-                        + "\" sets value of a parameter and is not a proper "
-                        + "calibrating equation so it cannot be followed by a parameter list; "
-                        + "error near line " + num2str(lineno));
+                          + "\" sets value of a parameter and is not a proper "
+                          + "calibrating equation so it cannot be followed by a parameter list",
+                          lineno);
                     continue;
                 }
             }
@@ -1438,17 +1502,17 @@ Model::collect_calibr()
                 set_ex::const_iterator it, ite;
                 for (it = vars.begin(), ite = vars.end(); it != ite; ++it) {
                     if (m_vars.find(*it) == m_vars.end()) {
-                        error("variable \"" + it->str() + "\" appears in calibrating equation but does not "
-                            + "appear in any model equation; error near line " + num2str(lineno));
+                        if (m_shocks.find(*it) != m_shocks.end()) {
+                            error("shock \"" + it->str() + "\" appears in calibrating equation", lineno);
+                        } else {
+                            error("variable \"" + it->str() + "\" appears in calibrating equation but does not "
+                                  + "appear in any model equation", lineno);
+                        }
                     }
                 }
                 for (it = pars.begin(), ite = pars.end(); it != ite; ++it) {
                     if (m_params.find(*it) == m_params.end()) {
-//                         warning("parameter \"" + it->str()
-//                                 + "\" appears in calibrating equation but does not "
-//                                 + "appear in any model equation; adding \""
-//                                 + it->str() + "\" to free parameter list; "
-//                                 + "warning near line " + num2str(lineno));
+                        m_params.insert(*it);
                         m_params_free.insert(*it);
                         params_fr_add.insert(*it);
                     }
@@ -1457,17 +1521,17 @@ Model::collect_calibr()
                 if (ps.first) {
                     if (!params_set.insert(ps.second).second) {
                         error("free parameter \"" + ps.second.str()
-                            + "\" already set to " + m_params_free_set.find(ps.second)->second.str()
-                            + "; error near line " + num2str(lineno));
+                              + "\" already set to \"" + m_params_free_set.find(ps.second)->second.str() + "\"",
+                              lineno);
                     }
                     if (!ps.third.validnum()) {
-                        error("value of parameter \"" + ps.second.str() + "\" set to " + ps.third.str()
-                            + "; error near line " + num2str(lineno));
+                        error("value of parameter \"" + ps.second.str() + "\" set to \"" + ps.third.str() + "\"",
+                              lineno);
                     }
                     m_params_free_set.insert(expair(ps.second, ps.third));
                     if (m_params_calibr.find(ps.second) != m_params_calibr.end()) {
                         error("parameter \"" + ps.second.str() + "\" was earlier declared as calibrated "
-                            + "parameter; error near line " + num2str(lineno));
+                              + "parameter", lineno);
                     }
                 } else {
                     pars.clear();
@@ -1478,28 +1542,27 @@ Model::collect_calibr()
                         for (; ipp != vpp.end(); ++ipp) {
                             if (m_params.find(*ipp) == m_params.end()) {
                                 error("parameter \"" + ipp->str() + "\" declared as calibrated, but does not "
-                                    + "appear in any model equation; error near line "
-                                    + num2str(m_blocks[i].m_calibr_pl[j][k].second));
+                                      + "appear in any model equation",
+                                      m_blocks[i].m_calibr_pl[j][k].second);
                             }
                             if (!pars.insert(*ipp).second) {
-                                error("repeating parameter \"" + ipp->str() + "\" in a parameter list; "
-                                    + "error near line " + num2str(m_blocks[i].m_calibr_pl[j][k].second));
+                                error("repeating parameter \"" + ipp->str() + "\" in a parameter list",
+                                      m_blocks[i].m_calibr_pl[j][k].second);
                             } else {
                                 m_params_calibr.insert(*ipp);
                             }
                             map_ex_ex::const_iterator mit;
                             if ((mit = m_params_free_set.find(*ipp)) != m_params_free_set.end()) {
                                 error("parameter \"" + ipp->str() + "\" declared as calibrated parameter "
-                                    + "yet at the same time its value was set to " + mit->second.str()
-                                    + "; error near line "
-                                    + num2str(m_blocks[i].m_calibr_pl[j][k].second));
+                                      + "yet at the same time its value was set to \"" + mit->second.str() + "\"",
+                                      m_blocks[i].m_calibr_pl[j][k].second);
                             }
                         }
                     }
 
                     if (!m_calibr.insert(*iit).second) {
                         warning("repeating calibration equation \"" + iit->str()
-                                + " = 0\"; warning near line " + num2str(lineno));
+                                + " = 0\"", lineno);
                     }
                 }
             }
@@ -1508,7 +1571,7 @@ Model::collect_calibr()
 
     unsigned nfp = m_params_calibr.size(), ce = m_calibr.size();
     if (ce != nfp) {
-        error(mk_diff_no_error(nfp, "non-free (calibrated) parameter", ce, "calibrating equation"));
+        error(mk_diff_no_error(nfp, "non-free (calibrated) parameter", ce, "calibrating equation"), 0);
     }
 
     for (set_ex::const_iterator it = m_params.begin(), ite = m_params.end();
@@ -1516,11 +1579,10 @@ Model::collect_calibr()
         if (m_params_calibr.find(*it) == m_params_calibr.end())
             m_params_free.insert(*it);
     }
-    if (params_fr_add.size()) {
+    if (m_options[verbose] && params_fr_add.size()) {
         std::string plst;
         for (set_ex::const_iterator it = params_fr_add.begin(),
          ite = params_fr_add.end(); it != ite;) {
-            m_params.insert(*it);
             plst += "\"" + it->str() + "\"";
             if (++it != ite) {
                 plst += ", ";
@@ -1532,8 +1594,10 @@ Model::collect_calibr()
 
 
 
+// variable reduction
+// =============================================================================
 void
-Model::check_red_vars()
+Model::check_red_vars2()
 {
     // Collect internally generated Lagrange multipliers for reduction
     for (unsigned i = 0, n = m_blocks.size(); i < n; ++i) {
@@ -1551,50 +1615,26 @@ Model::check_red_vars()
             }
         }
     }
-    std::vector<exint>::const_iterator it = m_redvars_v.begin();
-    for (; it != m_redvars_v.end(); ++it) {
-        ex e = it->first;
-        int line = it->second;
-        if (e.get_lag_max()) {
-            error("Variable(s) \"" + e.str()
-                  + "\" selected for reduction listed in lead/lag; error near line "
-                  + num2str(line));
+    set_ex::const_iterator it = m_s_redvars.begin();
+    for (; it != m_s_redvars.end(); ++it) {
+        if (m_vars.find(*it) == m_vars.end()) {
+            warning("variable \"" + it->str() + "\" selected for reduction but "
+                    + "does not appear in any model equation; removing from the list",
+                    0);
+            m_s_redvars.erase(*it);
             continue;
         }
-        vec_ex rv = expand(e);
-        vec_ex::const_iterator iit = rv.begin();
-        for (; iit != rv.end(); ++iit) {
-            map_ex_str::const_iterator df = m_def_vars.find(*iit);
-            if (df != m_def_vars.end()) {
-                warning("Variable \"" + iit->str()
-                        + "\" selected for reduction appears on the LHS of definition in "
-                        + df->second + " block; warning near line " + num2str(line));
-            }
-            if (m_vars.find(*iit) == m_vars.end()) {
-                error("Variable \"" + iit->str()
-                    + "\" selected for reduction but does not appear in any model equation; "
-                    + "error near line " + num2str(line));
-                continue;
-            }
-            set_ex::const_iterator it1;
-            for (it1 = m_calibr.begin(); it1 != m_calibr.end(); ++it1) {
-                if (it1->has(*iit, ANY_T)) {
-                    warning("Variable \"" + e.str()
-                            + "\" selected for reduction appears in calibrating equation \""
-                            + it1->str() + " = 0\"; warning near line " + num2str(line));
-                }
-            }
-            if (m_redvars.find(*iit) != m_redvars.end()) {
-                error("Variable \"" + e.str()
-                    + "\" already selected for reduction; error near line "
-                    + num2str(line));
-            } else {
-                m_redvars.insert(*iit);
+        set_ex::const_iterator it1;
+        for (it1 = m_calibr.begin(); it1 != m_calibr.end(); ++it1) {
+            if (it1->has(*it, ANY_T)) {
+                warning("variable \"" + it->str()
+                        + "\" selected for reduction appears in calibrating equation \""
+                        + it1->str() + " = 0\"", 0);
             }
         }
     }
-    m_redvars.insert(m_lagr_mult.begin(), m_lagr_mult.end());
-    m_redvars.insert(m_lags.begin(), m_lags.end());
+    m_s_redvars.insert(m_lagr_mult.begin(), m_lagr_mult.end());
+    m_s_redvars.insert(m_lags.begin(), m_lags.end());
 }
 
 
@@ -1608,21 +1648,21 @@ Model::reduce()
     eqsc.reserve(m_calibr.size());
     for (set_ex::iterator it = m_calibr.begin(); it != m_calibr.end(); ++it) eqsc.push_back(*it);
 
-    unsigned i, n = eqs.size(), nc = eqsc.size();
+    unsigned i, j, n = eqs.size(), nc = eqsc.size();
     bool try_red;
     do {
         try_red = false;
         for (i = 0; i < n; ++i) {
-            triplet<bool, ex, ex> ts = find_subst(eqs[i], m_redvars);
+            triplet<bool, ex, ex> ts = find_subst(eqs[i], m_s_redvars);
             if (!ts.first) continue;
             if (ts.third.hast()) {
                 ex e = ts.second, lde = lag(e, 1), lge = lag(e, -1);
                 int ld = 0, lg = 0;
-                for (unsigned i = 0; i < n; ++i) {
-                    if (eqs[i].has(lde)) {
+                for (unsigned ii = 0; ii < n; ++ii) {
+                    if (eqs[ii].has(lde)) {
                         ld = 1;
                     }
-                    if (eqs[i].has(lge)) {
+                    if (eqs[ii].has(lge)) {
                         lg = -1;
                     }
                     if (ld && lg) break;
@@ -1644,12 +1684,12 @@ Model::reduce()
             m_lagr_mult.erase(what);
             m_lags.erase(what);
             m_vars.erase(what);
-            m_redvars.erase(what);
+            m_s_redvars.erase(what);
             eqs[i] = ex();
-            for (unsigned j = 0; j < n; ++j) {
+            for (j = 0; j < n; ++j) {
                 eqs[j] = eqs[j].subst(what, with);
             }
-            for (unsigned j = 0; j < nc; ++j) {
+            for (j = 0; j < nc; ++j) {
                 eqsc[j] = eqsc[j].subst(what, with);
                 for (set_ex::const_iterator lit = m_shocks.begin();
                      lit != m_shocks.end(); ++lit) {
@@ -1659,7 +1699,47 @@ Model::reduce()
             try_red = true;
             break;
         }
-    } while (try_red && m_redvars.size());
+    } while (try_red && m_s_redvars.size());
+
+    if (m_s_redvars.size()) { // Reduction of variables appearing in 1 eq only
+        vec_ex rvars;
+        rvars.reserve(m_s_redvars.size());
+        for (set_ex::iterator it = m_s_redvars.begin(); it != m_s_redvars.end(); ++it)
+            rvars.push_back(*it);
+        std::vector<int> counts(rvars.size());
+        for (j = 0; j < rvars.size(); ++j) {
+            ex e = rvars[j];
+            bool incalibr = false;
+            for (i = 0; i < nc; ++i) {
+                if (eqsc[i].has(e, ANY_T)) {
+                    incalibr = true;
+                    break;
+                }
+            }
+            if (!incalibr) {
+                for (i = 0; i < n; ++i) {
+                    if (eqs[i].has(e, ANY_T)) {
+                        ++counts[j];
+                    }
+                }
+            }
+        }
+        for (j = 0; j < rvars.size(); ++j) {
+            if (counts[j] == 1) {
+                ex e = rvars[j];
+                for (i = 0; i < n; ++i) {
+                    if (eqs[i].has(e, ANY_T)) {
+                        eqs[i] = ex();
+                        m_lagr_mult.erase(e);
+                        m_lags.erase(e);
+                        m_vars.erase(e);
+                        m_s_redvars.erase(e);
+                        break;
+                    }
+                }
+            }
+        }
+    }
 
     m_eqs.clear();
     for (i = 0; i < n; ++i) {
@@ -1674,35 +1754,35 @@ Model::reduce()
 
     unsigned nv = m_vars.size(), ne = m_eqs.size();
     if (nv != ne) {
-        error(mk_diff_no_error(nv, "variable", ne, "model equation"));
+        error(mk_diff_no_error(nv, "variable", ne, "model equation"), 0);
     }
     unsigned nfp = m_params_calibr.size(), ce = m_calibr.size();
     if (ce != nfp) {
-        error(mk_diff_no_error(nfp, "non-free (calibrated) parameter", ce, "calibrating equation"));
+        error(mk_diff_no_error(nfp, "non-free (calibrated) parameter", ce, "calibrating equation"), 0);
     }
 
     for (set_ex::const_iterator it = m_lagr_mult.begin();
              it != m_lagr_mult.end(); ++it) {
-        m_redvars.erase(*it);
+        m_s_redvars.erase(*it);
     }
     for (set_ex::const_iterator it = m_lags.begin();
              it != m_lags.end(); ++it) {
-        m_redvars.erase(*it);
+        m_s_redvars.erase(*it);
     }
-    if (m_redvars.size()) {
+    if (m_s_redvars.size()) {
         std::string vlst;
         print_flag pflag = (m_static) ? DROP_T : DEFAULT;
-        for (set_ex::const_iterator it = m_redvars.begin();
-             it != m_redvars.end();) {
+        for (set_ex::const_iterator it = m_s_redvars.begin();
+             it != m_s_redvars.end();) {
             vlst += "\"" + it->str(pflag) + "\"";
-            if (++it != m_redvars.end()) {
+            if (++it != m_s_redvars.end()) {
                 vlst += ", ";
             }
         }
         warning("the following variable(s) selected for reduction could not be \
-symbolically reduced in the model: " + vlst);
+symbolically reduced in the model: " + vlst, 0);
     }
-    if (m_lagr_mult.size()) {
+    if (m_options[verbose] && (m_lagr_mult.size() || m_lags.size())) {
         std::string vlst;
         print_flag pflag = (m_static) ? DROP_T : DEFAULT;
         for (set_ex::const_iterator it = m_lagr_mult.begin();
@@ -1712,12 +1792,7 @@ symbolically reduced in the model: " + vlst);
                 vlst += ", ";
             }
         }
-        write_model_info("the following internally generated variable(s) could not be \
-symbolically reduced in the model: " + vlst);
-    }
-    if (m_lags.size()) {
-        std::string vlst;
-        print_flag pflag = (m_static) ? DROP_T : DEFAULT;
+        if (m_lagr_mult.size() && m_lags.size()) vlst += ", ";
         for (set_ex::const_iterator it = m_lags.begin();
              it != m_lags.end();) {
             vlst += "\"" + it->str(pflag) + "\"";
@@ -1732,6 +1807,9 @@ symbolically reduced in the model: " + vlst);
 
 
 
+
+// maps, steady state & derivatives
+// =============================================================================
 
 namespace {
 
@@ -1754,20 +1832,31 @@ Model::var_eq_map()
     set_ex::const_iterator it1, it2;
     ex x, e;
 
-    for (it1 = m_eqs.begin(), i = 1; it1 != m_eqs.end(); ++it1, ++i) {
-        e = *it1;
-        for (it2 = m_vars.begin(), j = 1; it2 != m_vars.end(); ++it2, ++j) {
-            flag = 0;
-            x = lag(*it2, -1);
-            if (e.has(x)) flag |= LAG_M1;
-            x = *it2;
-            if (e.has(x)) flag |= LAG_0;
-            x = lag(*it2, 1);
-            if (e.has(x)) flag |= LAG_P1;
-            x = ss(*it2);
-            if (e.has(x)) flag |= LAG_SS;
-            if (flag) m_var_eq_map.insert(std::pair<std::pair<int, int>, unsigned>(
-                                          std::pair<int, int>(i, j), flag));
+    if (m_static) {
+        for (it1 = m_eqs.begin(), i = 1; it1 != m_eqs.end(); ++it1, ++i) {
+            e = *it1;
+            for (it2 = m_vars.begin(), j = 1; it2 != m_vars.end(); ++it2, ++j) {
+                x = *it2;
+                if (e.has(x)) m_var_eq_map.insert(std::pair<std::pair<int, int>, unsigned>(
+                                            std::pair<int, int>(i, j), LAG_0));
+            }
+        }
+    } else {
+        for (it1 = m_eqs.begin(), i = 1; it1 != m_eqs.end(); ++it1, ++i) {
+            e = *it1;
+            for (it2 = m_vars.begin(), j = 1; it2 != m_vars.end(); ++it2, ++j) {
+                flag = 0;
+                x = lag(*it2, -1);
+                if (e.has(x)) flag |= LAG_M1;
+                x = *it2;
+                if (e.has(x)) flag |= LAG_0;
+                x = lag(*it2, 1);
+                if (e.has(x)) flag |= LAG_P1;
+                x = ss(*it2);
+                if (e.has(x)) flag |= LAG_SS;
+                if (flag) m_var_eq_map.insert(std::pair<std::pair<int, int>, unsigned>(
+                                            std::pair<int, int>(i, j), flag));
+            }
         }
     }
 }
@@ -1785,7 +1874,7 @@ Model::shock_eq_map()
         for (it2 = m_shocks.begin(), j = 1; it2 != m_shocks.end(); ++it2, ++j) {
             if (e.has(*it2, DIFF_T)) {
                 error("shock \"" + it2->str() + "\" in equation \"" + it1->str()
-                      + "\" has invalid time index; shocks should have time index 0");
+                      + "\" has invalid time index; shocks should have time index 0", 0);
             }
             if (e.has(*it2)) m_shock_eq_map.insert(std::pair<int, int>(i, j));
         }
@@ -1796,40 +1885,32 @@ Model::shock_eq_map()
 
 
 
-
 void
 Model::stst()
 {
+    set_ex ss_set;
     set_ex::const_iterator it, it2;
-    set_ex sseq;
     unsigned vs = m_vars.size();
-    m_ss.reserve(vs);
 
-    if (m_static) {
-        for (it = m_eqs.begin(); it != m_eqs.end(); ++it) {
-            m_ss.push_back(ss(*it));
-        }
-    } else {
-        for (it = m_eqs.begin(); it != m_eqs.end(); ++it) {
-            ex ssex = ss(*it);
-            for (it2 = m_shocks.begin(); it2 != m_shocks.end(); ++it2) {
-                ssex = ssex.subst(ss(*it2), ex());
-            }
-            m_ss.push_back(ssex);
-            if (!ssex) {
-                error("steady state equation \"0 = 0\" derived from \""
-                    + it->str() + "\"");
-                continue;
-            }
-            if (!sseq.insert(ssex).second) {
-                warning("repeating steady state equation: " + ssex.str() + " = 0");
-            }
-        }
+    if (m_static) return;
 
-        unsigned sse = sseq.size();
-        if (vs != sse) {
-            error(mk_diff_no_error(vs, "variable", sse, "steady state equation"));
+    for (it = m_eqs.begin(); it != m_eqs.end(); ++it) {
+        ex ssex = ss(*it);
+        for (it2 = m_shocks.begin(); it2 != m_shocks.end(); ++it2) {
+            ssex = ssex.subst(ss(*it2), ex());
         }
+        if (!ssex) {
+            warning("steady state equation \"0 = 0\" derived from \""
+                    + it->str() + "\"", 0);
+        } else if (!ss_set.insert(ssex).second) {
+            warning("repeating steady state equation: \"" + ssex.str() + " = 0\"", 0);
+        }
+        m_ss.push_back(ssex);
+    }
+
+    unsigned sse = m_ss.size();
+    if (vs != sse) {
+        error(mk_diff_no_error(vs, "variable", sse, "steady state equation"), 0);
     }
 
     for (it = m_t_eqs.begin(); it != m_t_eqs.end(); ++it) {
@@ -1848,7 +1929,9 @@ Model::var_ceq_map()
     if (m_static) {
         for (it1 = m_calibr.begin(), i = 1; it1 != m_calibr.end(); ++it1, ++i) {
             for (it2 = m_vars.begin(), j = 1; it2 != m_vars.end(); ++it2, ++j) {
-                if (it1->has(*it2)) m_var_ceq_map.insert(std::pair<int, int>(i, j));
+                if (it1->has(*it2)) {
+                    m_var_ceq_map.insert(std::pair<int, int>(i, j));
+                }
             }
         }
     }
@@ -1904,54 +1987,91 @@ Model::par_ceq_map()
 void
 Model::ss_jacob()
 {
-    int i, j;
-    vec_ex::const_iterator it0;
-    set_ex::const_iterator it1, it2;
+    int i, j, nv = m_vars.size(), ne = m_eqs.size();
+    set_ex::const_iterator it0, it1, it2;
+    vec_ex::const_iterator it0v;
     ex x, e, r;
 
-    for (it0 = m_ss.begin(), i = 1; it0 != m_ss.end(); ++it0, ++i) {
-        e = *it0;
-        for (it2 = m_vars.begin(), j = 1; it2 != m_vars.end(); ++it2, ++j) {
-            x = ss(*it2);
-            r = diff(e, x);
-            if (r) {
-                m_jacob_ss_calibr.insert(std::pair<std::pair<int, int>, ex>(
-                                  std::pair<int, int>(i, j), r));
+    if (m_static) {
+        for (it0 = m_eqs.begin(), i = 1; it0 != m_eqs.end(); ++it0, ++i) {
+            e = *it0;
+            for (it2 = m_vars.begin(), j = 1; it2 != m_vars.end(); ++it2, ++j) {
+                x = *it2;
+                r = diff(e, x);
+                if (r) {
+                    m_jacob_ss_calibr.insert(std::pair<std::pair<int, int>, ex>(
+                                    std::pair<int, int>(i, j), r));
+                }
+            }
+        }
+        for (it0 = m_eqs.begin(), i = 1; it0 != m_eqs.end(); ++it0, ++i) {
+            e = *it0;
+            for (it2 = m_params_calibr.begin(), j = 1;
+                it2 != m_params_calibr.end(); ++it2, ++j) {
+                x = *it2;
+                r = diff(e, x);
+                if (r) {
+                    m_jacob_ss_calibr.insert(std::pair<std::pair<int, int>, ex>(
+                                    std::pair<int, int>(i, j + nv), r));
+                }
+            }
+        }
+        for (it1 = m_calibr.begin(), i = 1; it1 != m_calibr.end(); ++it1, ++i) {
+            e = *it1;
+            for (it2 = m_vars.begin(), j = 1; it2 != m_vars.end(); ++it2, ++j) {
+                x = *it2;
+                r = diff(e, x);
+                if (r) {
+                    m_jacob_ss_calibr.insert(std::pair<std::pair<int, int>, ex>(
+                                    std::pair<int, int>(i + ne, j), r));
+                }
+            }
+        }
+    } else {
+        for (it0v = m_ss.begin(), i = 1; it0v != m_ss.end(); ++it0v, ++i) {
+            e = *it0v;
+            for (it2 = m_vars.begin(), j = 1; it2 != m_vars.end(); ++it2, ++j) {
+                x = ss(*it2);
+                r = diff(e, x);
+                if (r) {
+                    m_jacob_ss_calibr.insert(std::pair<std::pair<int, int>, ex>(
+                                    std::pair<int, int>(i, j), r));
+                }
+            }
+        }
+        for (it0v = m_ss.begin(), i = 1; it0v != m_ss.end(); ++it0v, ++i) {
+            e = *it0v;
+            for (it2 = m_params_calibr.begin(), j = 1;
+                it2 != m_params_calibr.end(); ++it2, ++j) {
+                x = *it2;
+                r = diff(e, x);
+                if (r) {
+                    m_jacob_ss_calibr.insert(std::pair<std::pair<int, int>, ex>(
+                                    std::pair<int, int>(i, j + nv), r));
+                }
+            }
+        }
+        for (it1 = m_calibr.begin(), i = 1; it1 != m_calibr.end(); ++it1, ++i) {
+            e = *it1;
+            for (it2 = m_vars.begin(), j = 1; it2 != m_vars.end(); ++it2, ++j) {
+                x = ss(*it2);
+                r = diff(e, x);
+                if (r) {
+                    m_jacob_ss_calibr.insert(std::pair<std::pair<int, int>, ex>(
+                                    std::pair<int, int>(i + ne, j), r));
+                }
             }
         }
     }
-    for (it0 = m_ss.begin(), i = 1; it0 != m_ss.end(); ++it0, ++i) {
-        e = *it0;
-        for (it2 = m_params_calibr.begin(), j = m_vars.size() + 1;
+    for (it1 = m_calibr.begin(), i = 1; it1 != m_calibr.end(); ++it1, ++i) {
+        e = *it1;
+        for (it2 = m_params_calibr.begin(), j = 1;
              it2 != m_params_calibr.end(); ++it2, ++j) {
             x = *it2;
             r = diff(e, x);
             if (r) {
                 m_jacob_ss_calibr.insert(std::pair<std::pair<int, int>, ex>(
-                                  std::pair<int, int>(i, j), r));
-            }
-        }
-    }
-    for (it1 = m_calibr.begin(), i = m_eqs.size() + 1; it1 != m_calibr.end(); ++it1, ++i) {
-        e = *it1;
-        for (it2 = m_vars.begin(), j = 1; it2 != m_vars.end(); ++it2, ++j) {
-            x = ss(*it2);
-            r = diff(e, x);
-            if (r) {
-                m_jacob_ss_calibr.insert(std::pair<std::pair<int, int>, ex>(
-                                  std::pair<int, int>(i, j), r));
-            }
-        }
-    }
-    for (it1 = m_calibr.begin(), i = m_eqs.size() + 1; it1 != m_calibr.end(); ++it1, ++i) {
-        e = *it1;
-        for (it2 = m_params_calibr.begin(), j = m_vars.size() + 1;
-             it2 != m_params_calibr.end(); ++it2, ++j) {
-            x = *it2;
-            r = diff(e, x);
-            if (r) {
-                m_jacob_ss_calibr.insert(std::pair<std::pair<int, int>, ex>(
-                                  std::pair<int, int>(i, j), r));
+                                  std::pair<int, int>(i + ne, j + nv), r));
             }
         }
     }
@@ -1964,7 +2084,9 @@ void
 Model::diff_eqs()
 {
     int i, j;
+    unsigned fl;
     set_ex::const_iterator it1, it2, it3;
+    std::map<std::pair<int, int>, unsigned>::const_iterator itf;
     ex x, r, e;
 
     if (m_static) return;
@@ -1972,37 +2094,54 @@ Model::diff_eqs()
     for (it1 = m_eqs.begin(), i = 1; it1 != m_eqs.end(); ++it1, ++i) {
         e = *it1;
         for (it2 = m_vars.begin(), j = 1; it2 != m_vars.end(); ++it2, ++j) {
-            x = lag(*it2, -1);
-            r = diff(e, x);
-            r = ss(r);
-            for (it3 = m_shocks.begin(); (it3 != m_shocks.end()) && (r); ++it3) {
-                r = r.subst(ss(*it3), ex());
+            itf = m_var_eq_map.find(std::pair<int, int>(i, j));
+            if (itf == m_var_eq_map.end()) continue;
+            fl = itf->second;
+            if (fl & LAG_M1) {
+                x = lag(*it2, -1);
+                r = diff(e, x);
+                r = ss(r);
+                if (r) {
+                    for (it3 = m_shocks.begin(); (it3 != m_shocks.end()) && (r); ++it3) {
+                        r = r.subst(ss(*it3), ex());
+                    }
+                }
+                if (r) m_Atm1.insert(std::pair<std::pair<int, int>, ex>(
+                            std::pair<int, int>(i, j), r));
             }
-            if (r) m_Atm1.insert(std::pair<std::pair<int, int>, ex>(
-                        std::pair<int, int>(i, j), r));
-            x = *it2;
-            r = diff(e, x);
-            r = ss(r);
-            for (it3 = m_shocks.begin(); (it3 != m_shocks.end()) && (r); ++it3) {
-                r = r.subst(ss(*it3), ex());
+            if (fl & LAG_0) {
+                x = *it2;
+                r = diff(e, x);
+                r = ss(r);
+                if (r) {
+                    for (it3 = m_shocks.begin(); (it3 != m_shocks.end()) && (r); ++it3) {
+                        r = r.subst(ss(*it3), ex());
+                    }
+                }
+                if (r) m_At.insert(std::pair<std::pair<int, int>, ex>(
+                            std::pair<int, int>(i, j), r));
             }
-            if (r) m_At.insert(std::pair<std::pair<int, int>, ex>(
-                        std::pair<int, int>(i, j), r));
-            x = lag(*it2, 1);
-            r = diff(e, x);
-            r = ss(r);
-            for (it3 = m_shocks.begin(); (it3 != m_shocks.end()) && (r); ++it3) {
-                r = r.subst(ss(*it3), ex());
+            if (fl & LAG_P1) {
+                x = lag(*it2, 1);
+                r = diff(e, x);
+                r = ss(r);
+                if (r) {
+                    for (it3 = m_shocks.begin(); (it3 != m_shocks.end()) && (r); ++it3) {
+                        r = r.subst(ss(*it3), ex());
+                    }
+                }
+                if (r) m_Atp1.insert(std::pair<std::pair<int, int>, ex>(
+                            std::pair<int, int>(i, j), r));
             }
-            if (r) m_Atp1.insert(std::pair<std::pair<int, int>, ex>(
-                        std::pair<int, int>(i, j), r));
         }
         for (it2 = m_shocks.begin(), j = 1; it2 != m_shocks.end(); ++it2, ++j) {
             x = *it2;
             r = diff(e, x);
             r = ss(r);
-            for (it3 = m_shocks.begin(); (it3 != m_shocks.end()) && (r); ++it3) {
-                r = r.subst(ss(*it3), ex());
+            if (r) {
+                for (it3 = m_shocks.begin(); (it3 != m_shocks.end()) && (r); ++it3) {
+                    r = r.subst(ss(*it3), ex());
+                }
             }
             if (r) m_Aeps.insert(std::pair<std::pair<int, int>, ex>(
                         std::pair<int, int>(i, j), r));

@@ -2,89 +2,101 @@
 \alias{gecon_model}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Constructor of "gecon_model" class
+Create objects of \code{gecon_model} class
 }
 \description{
-The \code{gecon_model} function is a constructor of \code{gecon_model} class objects.
+The \code{gecon_model} function is a constructor of objects of \code{gecon_model} class.
 }
 \usage{
-gecon_model(model_info, index_sets, variables, shocks, parameters, parameters_free,
-            parameters_free_val, equations, calibr_equations, 
+gecon_model(model_info, index_sets,
+            variables, variables_tex,
+            shocks, shocks_tex,
+            parameters, parameters_tex,
+            parameters_free, parameters_free_val,
+            equations, calibr_equations,
             var_eq_map, shock_eq_map, var_ceq_map, cpar_eq_map,
-            cpar_ceq_map, fpar_eq_map, fpar_ceq_map, ss_function, 
-            calibr_function, ss_calibr_function_jac, pert)
+            cpar_ceq_map, fpar_eq_map, fpar_ceq_map,
+            ss_function, calibr_function, ss_calibr_jac_function,
+            pert, ext)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{model_info}{
-a character vector of length 3,  containing information about the model: the input file name, the input file path and the date of creation.
+a character vector of length 4, containing information about the model: the input file name, the input file path, the date of creation, and a logical flag informing if the model requires compiling.
 }
   \item{index_sets}{
-a list containing information about index sets. The names of the list components correspond to the set names.
-Each component contains character vector of the names of the relevant set elements.
+a list containing information about index sets. The names of its elements correspond to sets' names.
+Each element contains a character vector of the names of the relevant set's components.
 }
   \item{variables}{
-a character vector of all the variable names.
+a character vector of variables' names.
+}
+  \item{variables_tex}{
+a character vector of variables' LaTeX names.
 }
   \item{shocks}{
-a character vector of all the shock names.
+a character vector of shocks' names.
+}
+  \item{shocks_tex}{
+a character vector of shocks' LaTeX names.
 }
   \item{parameters}{
-a character vector of all the parameter names.
+a character vector of all parameters' names.
+}
+  \item{parameters_tex}{
+a character vector of all parameters' LaTeX names.
 }
   \item{parameters_free}{
-a character vector of all the free parameter names.
+a character vector of free parameters' names.
 }
   \item{parameters_free_val}{
-a numeric vector of the values of all the free parameters.
+a vector of free parameters' values.
 }
   \item{equations}{
 a character vector of model equations.
 }
   \item{calibr_equations}{
-a character vector of model calibrating equations.
+a character vector of calibrating equations.
 }
   \item{var_eq_map}{
-a sparse matrix (a \code{Matrix} class object) representing the mapping of variables to equations.
+a sparse matrix (an object of \code{Matrix} class) representing the mapping of variables to equations.
 }
   \item{shock_eq_map}{
-a sparse matrix (a \code{Matrix} class object) representing the mapping of shocks to equations.
+a sparse matrix (an object of \code{Matrix} class) representing the mapping of shocks to equations.
 }
   \item{var_ceq_map}{
-a sparse matrix (a \code{Matrix} class object) representing the mapping of variables to calibrating equations.
+a sparse matrix (an object of \code{Matrix} class) representing the mapping of variables to calibrating equations.
 }
   \item{cpar_eq_map}{
-a sparse matrix (a \code{Matrix} class object) representing the mapping of calibrated parameters to equations.
+a sparse matrix (an object of \code{Matrix} class) representing the mapping of calibrated parameters to equations.
 }
   \item{cpar_ceq_map}{
-a sparse matrix (a \code{Matrix} class object) representing the mapping of calibrated parameters to calibrating equations.
+a sparse matrix (an object of \code{Matrix} class) representing the mapping of calibrated parameters to calibrating equations.
 }
   \item{fpar_eq_map}{
-a sparse matrix (a \code{Matrix} class object) representing the mapping of free parameters to equations.
+a sparse matrix (an object of \code{Matrix} class) representing the mapping of free parameters to equations.
 }
   \item{fpar_ceq_map}{
-a sparse matrix (a \code{Matrix} class object) representing the mapping of free parameters to calibrating equations.
+a sparse matrix (an object of \code{Matrix} class) representing the mapping of free parameters to calibrating equations.
 }
   \item{ss_function}{
-a function returning residuals from the steady-state (equilibrium for the static models) equations.
+a function returning the steady-state/equilibrium equations' residuals.
 }
   \item{calibr_function}{
 a function used for the calibration of parameters.
 }
-  \item{ss_calibr_function_jac}{
-a function returning a Jacobian of functions returning residuals from the steady-state (equilibrium for the static models) equations.
+  \item{ss_calibr_jac_function}{
+a function computing the Jacobian of both steady-state (equilibrium) and calibrating functions or NULL.
 }
   \item{pert}{
-a function returning a list with the matrices representing canonical form of the model.}
+a function returning matrices representing the first order perturbation of the model
+(in the canonical form).}
+  \item{ext}{
+a list containing additional information about the class instance and potential extensions.}
 }
 \value{
-An object of the \code{gecon_model} class.
+An object of \code{gecon_model} class.
 }
-\author{
-Karol Podemski \email{karol.podemski@gmail.com}, \cr
-Kaja Retkiewicz-Wijtiwiak \email{kaja.retkiewicz@gmail.com}
-}
-
 \note{
-The \code{gecon_model} constructor is used in R files created by \code{gEcon}.
+The \code{gecon_model} constructor is used in .R files created by \code{gEcon}. In general, users should not call this function explicitly.
 }

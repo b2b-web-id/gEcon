@@ -4,42 +4,38 @@
 Information about shocks
 }
 \description{
-The \code{shock_info} function allows to create an object of the \code{gecon_shock_info} class,
-which contains the information about the model's shocks (occurence in equations and the variance-covariance matrix).
+The \code{shock_info} function prints information about the model's shocks (occurrence in equations, covariance matrix).
+It also allows to create an object of the \code{gecon_shock_info} class, which stores this information.
 }
 \usage{
-shock_info(model, shock_names = NULL, all_shocks = FALSE)
+shock_info(model, shocks = NULL, all = FALSE)
 }
 \arguments{
  \item{model}{
-an object of the \code{gecon_model} class.
+an object of \code{gecon_model} class.
 }
-  \item{shock_names}{
-the names of shocks of interest.
+  \item{shocks}{
+the names or indices of shocks of interest.
 }
-  \item{all_shocks}{
-the logical value. If set to TRUE, the \code{shock_names} argument is overwritten with the vector of all shocks
-appearing in the model. The default value is FALSE.
+  \item{all}{
+logical value. If TRUE, information about all model shocks is generated (FALSE by default).
 }
 }
 \value{
-An object of the \code{\link{gecon_shock_info-class}} class.
-}
-\author{
-Karol Podemski \email{karol.podemski@gmail.com}, \cr
-Kaja Retkiewicz-Wijtiwiak \email{kaja.retkiewicz@gmail.com}
+An object of the \code{\link{gecon_shock_info-class}}.
 }
 \examples{
 # copy the example to the current working directory
-file.copy(from = file.path(system.file("examples", package = 'gEcon'),
-          'rbc.gcn'), to = getwd())
+file.copy(from = file.path(system.file("examples", package = "gEcon"),
+          "rbc.gcn"), to = getwd())
 
 # make and load model
-rbc <- make_model('rbc.gcn')
+rbc <- make_model("rbc.gcn")
 
 # set the shock covariance matrix
-rbc <- set_shock_cov_mat(rbc, shock_matrix = matrix(0.01, 1, 1), shock_order = 'epsilon_Z')
+rbc <- set_shock_cov_mat(rbc, cov_matrix = matrix(0.01, 1, 1),
+                         shock_order = "epsilon_Z")
 
 # get information about shocks
-shock_info(rbc, all_shocks = TRUE)
+shock_info(rbc, all = TRUE)
 }

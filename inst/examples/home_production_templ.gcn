@@ -1,35 +1,40 @@
-# ###################################################################
-# (c) Kancelaria Prezesa Rady Ministrów 2012-2014                   #
-# Treść licencji w pliku:                                           #
-# http://gecon.r-forge.r-project.org/files/gEcon_licence.txt        #
-#                                                                   #
-# (c) Chancellery of the Prime Minister 2012-2014                   #
-# Licence terms can be found in the file:                           #
-# http://gecon.r-forge.r-project.org/files/gEcon_licence.txt        #
-#                                                                   #
-# Author(s): Grzegorz Klima, Karol Podemski,                        #
-#            Kaja Retkiewicz-Wijtiwiak                              #
-# ###################################################################
-# RBC Model with home production based on Benhabib J., 
-# Rogerson R. & Wright R. "Homework in macroeconomics: 
+# ############################################################################
+# (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015  #
+# (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018    #
+# License terms can be found in the file 'LICENCE'                           #
+#                                                                            #
+# Authors: Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak         #
+# ############################################################################
+# RBC Model with home production based on Benhabib J.,
+# Rogerson R. & Wright R. "Homework in macroeconomics:
 # Household production and aggregate fluctuations." (1991)
 # written using gEcon template mechanism
 #
-# Due to the expression 'log(1 - N__M[] - N__H[])' finding model 
-# steady state requires setting initial values 
-# for the following variables: N__H, N__M, N and N_m_d. 
-# An example set of initial values: N = 0.5, N__H = 0.25, N__M = 0.25.
-# ###################################################################
+# Due to the expression 'log(1 - N__M[] - N__H[])' finding model
+# steady state requires setting initial values
+# for the following variables: N__H, N__M, N and N_m_d.
+# An sample set of initial values is: N = 0.5, N__H = 0.25, N__M = 0.25.
+# ############################################################################
+
+
+options
+{
+    output logfile = TRUE;
+    output LaTeX = TRUE;
+};
+
 
 indexsets
 {
     IND = { 'M', 'H' };
 };
 
+
 tryreduce
 {
     K_m_d[], N_m_d[], pi[];
 };
+
 
 block CONSUMER
 {
@@ -69,6 +74,7 @@ block CONSUMER
     };
 };
 
+
 block FIRM
 {
     controls
@@ -90,6 +96,7 @@ block FIRM
     };
 };
 
+
 block EQUILIBRIUM
 {
     identities
@@ -99,7 +106,8 @@ block EQUILIBRIUM
     };
 };
 
-block EXOG 
+
+block EXOG
 {
     identities
     {

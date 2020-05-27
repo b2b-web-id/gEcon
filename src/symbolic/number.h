@@ -1,12 +1,12 @@
-/***********************************************************
- * (c) Kancelaria Prezesa Rady Ministrów 2012-2015         *
- * Treść licencji w pliku 'LICENCE'                        *
- *                                                         *
- * (c) Chancellery of the Prime Minister 2012-2015         *
- * License terms can be found in the file 'LICENCE'        *
- *                                                         *
- * Author: Grzegorz Klima                                  *
- ***********************************************************/
+/*****************************************************************************
+ * This file is a part of gEcon.                                             *
+ *                                                                           *
+ * (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015 *
+ * (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018   *
+ * License terms can be found in the file 'LICENCE'                          *
+ *                                                                           *
+ * Author: Grzegorz Klima                                                    *
+ *****************************************************************************/
 
 /** \file number.h
  * \brief Numbers.
@@ -86,7 +86,8 @@ class Number {
     friend Number sinh(const Number&);
     friend Number cosh(const Number&);
     friend Number tanh(const Number&);
-    // friend Number erf(const Number&);
+    friend Number erf(const Number&);
+    friend Number pnorm(const Number&);
 
 }; /* class Number */
 
@@ -254,8 +255,17 @@ inline Number cosh(const Number &n) { return Number(std::cosh(n.m_val)); }
 /// Hyperbolic tangent
 inline Number tanh(const Number &n) { return Number(std::tanh(n.m_val)); }
 
-// /// Erf
-// inline Number erf(const Number &n) { return Number(std::erf(n.m_val)); }
+/// erf
+inline Number erf(const Number &n) { return Number(std::erf(n.m_val)); }
+
+#ifndef M_SQRT1_2
+#define M_SQRT1_2 0.707106781186547524400844362104849039
+#endif /* M_SQRT1_2 */
+
+/// pnorm
+inline Number pnorm(const Number &n) {
+    return Number(.5 + .5 * std::erf(M_SQRT1_2 * n.m_val));
+}
 
 
 

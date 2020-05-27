@@ -1,12 +1,12 @@
-/***********************************************************
- * (c) Kancelaria Prezesa Rady Ministrów 2012-2015         *
- * Treść licencji w pliku 'LICENCE'                        *
- *                                                         *
- * (c) Chancellery of the Prime Minister 2012-2015         *
- * License terms can be found in the file 'LICENCE'        *
- *                                                         *
- * Author: Grzegorz Klima                                  *
- ***********************************************************/
+/*****************************************************************************
+ * This file is a part of gEcon.                                             *
+ *                                                                           *
+ * (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015 *
+ * (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018   *
+ * License terms can be found in the file 'LICENCE'                          *
+ *                                                                           *
+ * Author: Grzegorz Klima                                                    *
+ *****************************************************************************/
 
 /** \file ex_pow.cpp
  * \brief Powers.
@@ -55,7 +55,7 @@ ex_pow::compare(const ex_pow &b) const
 
 
 std::string
-ex_pow::str(int pflag) const
+ex_pow::str(int pflag, bool c_style) const
 {
     if (pflag & INDEXING_ONLY) return std::string();
     bool braceb = true, braceex = true;
@@ -69,20 +69,27 @@ ex_pow::str(int pflag) const
     if ((et == NUM) || (et == DELTA) || (et == SYMB) || (et == SYMBIDX)
         || (et == VART) || (et == VARTIDX)) braceex = false;
 
-    if (braceb) res += "(";
-    res += m_base->str(pflag);
-    if (braceb) res += ")";
-    res += '^';
-    if (braceex) res += "(";
-    res += m_exp->str(pflag);
-    if (braceex) res += ")";
-
+    if (c_style) {
+        res += "pow(";
+        res += m_base->str(pflag, c_style);
+        res += ", ";
+        res += m_exp->str(pflag, c_style);
+        res += ")";
+    } else {
+        if (braceb) res += "(";
+        res += m_base->str(pflag, c_style);
+        if (braceb) res += ")";
+        res += '^';
+        if (braceex) res += "(";
+        res += m_exp->str(pflag, c_style);
+        if (braceex) res += ")";
+    }
     return res;
 }
 
 
 std::string
-ex_pow::strmap(const map_str_str &mss) const
+ex_pow::strmap(const map_str_str &mss, bool c_style) const
 {
     bool braceb = true, braceex = true;
     std::string res;
@@ -95,13 +102,25 @@ ex_pow::strmap(const map_str_str &mss) const
     if ((et == NUM) || (et == DELTA) || (et == SYMB) || (et == SYMBIDX)
         || (et == VART) || (et == VARTIDX)) braceex = false;
 
-    if (braceb) res += "(";
-    res += m_base->strmap(mss);
-    if (braceb) res += ")";
-    res += '^';
-    if (braceex) res += "(";
-    res += m_exp->strmap(mss);
-    if (braceex) res += ")";
+    if (c_style) {
+        res += "pow(";
+        if (braceb) res += "(";
+        res += m_base->strmap(mss, c_style);
+        if (braceb) res += ")";
+        res += ", ";
+        if (braceex) res += "(";
+        res += m_exp->strmap(mss, c_style);
+        if (braceex) res += ")";
+        res += ")";
+    } else {
+        if (braceb) res += "(";
+        res += m_base->strmap(mss, c_style);
+        if (braceb) res += ")";
+        res += '^';
+        if (braceex) res += "(";
+        res += m_exp->strmap(mss, c_style);
+        if (braceex) res += ")";
+    }
 
     return res;
 }

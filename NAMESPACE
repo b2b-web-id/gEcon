@@ -6,19 +6,24 @@ import(
     nleqslv,
     Rcpp
     )
+importFrom(grDevices, dev.off, postscript, ps.options, setEPS)
+importFrom(graphics, axis, layout, legend, par, plot, plot.new, segments)
+importFrom(stats, acf, as.ts, mvfft, rnorm, sd, time, var)
 export(
     check_bk,
-    compute_moments,
+    compute_model_stats,
     compute_irf,
     list_eq,
     list_calibr_eq,
     gecon_simulation,
     gecon_model,
-    get_cov_mat,
+    get_shock_cov_mat,
     get_par_names,
     get_index_sets,
+    get_init_val_var,
+    get_init_calibr_par,
     get_model_info,
-    get_moments,
+    get_model_stats,
     get_par_names_by_index,
     get_par_values,
     get_pert_solution,
@@ -31,6 +36,7 @@ export(
     get_var_names_by_index,
     initval_calibr_par,
     initval_var,
+    is.gecon_model,
     load_model,
     make_model,
     par_info,

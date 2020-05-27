@@ -20,11 +20,11 @@ For details, see \code{\link{gecon_model-class}}.
 }
 \examples{
 # copy the example to the current working directory
-file.copy(from = file.path(system.file("examples", package = 'gEcon'),
-          'rbc.gcn'), to = getwd())
+file.copy(from = file.path(system.file("examples", package = "gEcon"),
+          "rbc.gcn"), to = getwd())
 
 # make and load the model
-rbc <- make_model('rbc.gcn')
+rbc <- make_model("rbc.gcn")
 
 # retrieve and show model information
 model_info <- get_model_info(rbc)

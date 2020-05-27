@@ -1,12 +1,12 @@
-/***********************************************************
- * (c) Kancelaria Prezesa Rady Ministrów 2012-2015         *
- * Treść licencji w pliku 'LICENCE'                        *
- *                                                         *
- * (c) Chancellery of the Prime Minister 2012-2015         *
- * License terms can be found in the file 'LICENCE'        *
- *                                                         *
- * Author: Grzegorz Klima                                  *
- ***********************************************************/
+/*****************************************************************************
+ * This file is a part of gEcon.                                             *
+ *                                                                           *
+ * (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015 *
+ * (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018   *
+ * License terms can be found in the file 'LICENCE'                          *
+ *                                                                           *
+ * Author: Grzegorz Klima                                                    *
+ *****************************************************************************/
 
 /** \file ex_vartidx.h
  * \brief Time indexed variables with additional indices.
@@ -80,10 +80,10 @@ class ex_vartidx : public ex_base {
     std::string get_name() const;
 
     /// String representation
-    virtual std::string str(int pflag) const;
+    virtual std::string str(int pflag, bool c_style) const;
     /// String representation using string 2 string map (name substitution).
     /// For time indexed variables this always drops time indices.
-    virtual std::string strmap(const map_str_str&) const;
+    virtual std::string strmap(const map_str_str&, bool c_style) const;
     /// LaTeX string representation
     virtual std::string tex(int pflag) const;
     /// Max lag in expression
@@ -126,6 +126,7 @@ class ex_vartidx : public ex_base {
     friend ptr_base subst(const ptr_base &e, const ptr_base &what,
                           const ptr_base &with, bool all_leads_lags);
     friend ptr_base substidx(const ptr_base &e, unsigned what, int with);
+    friend ptr_base lag0(const ptr_base &e);
 
 }; /* class ex_vartidx */
 

@@ -1,12 +1,12 @@
-/***********************************************************
- * (c) Kancelaria Prezesa Rady Ministrów 2012-2015         *
- * Treść licencji w pliku 'LICENCE'                        *
- *                                                         *
- * (c) Chancellery of the Prime Minister 2012-2015         *
- * License terms can be found in the file 'LICENCE'        *
- *                                                         *
- * Author: Grzegorz Klima                                  *
- ***********************************************************/
+/*****************************************************************************
+ * This file is a part of gEcon.                                             *
+ *                                                                           *
+ * (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015 *
+ * (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018   *
+ * License terms can be found in the file 'LICENCE'                          *
+ *                                                                           *
+ * Author: Grzegorz Klima                                                    *
+ *****************************************************************************/
 
 /** \file utils.cpp
  * \brief Utilities.
@@ -64,19 +64,27 @@ symbolic::internal::num2tex(double n)
 
 
 std::string
-symbolic::internal::num2str(int n)
+symbolic::internal::num2str(int n, int d)
 {
     char buf[15];
-    sprintf(buf, "%d", n);
+    if (d) {
+        sprintf(buf, "%0*d", d, n);
+    } else {
+        sprintf(buf, "%d", n);
+    }
     return std::string(buf);
 }
 
 
 std::string
-symbolic::internal::num2str(unsigned n)
+symbolic::internal::num2str(unsigned n, int d)
 {
     char buf[15];
-    sprintf(buf, "%u", n);
+    if (d) {
+        sprintf(buf, "%0*u", d, n);
+    } else {
+        sprintf(buf, "%u", n);
+    }
     return std::string(buf);
 }
 
@@ -208,6 +216,10 @@ const char* funcs[] = {
     "coth", "\\coth",
     "exp", "\\exp",
     "log", "\\log",
+    // NOTE: this requiress \DeclareMathOperator{\erf}{erf} in LaTeX source
+    "erf", "\\erf",
+    // NOTE: this requiress \DeclareMathOperator{\pnorm}{pnorm} in LaTeX source
+    "pnorm", "\\pnorm",
 ""};
 
 } /* namespace */

@@ -2,46 +2,53 @@
 \alias{gecon_simulation}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Constructor for "gecon_simulation" class object
+Create objects of \code{gecon_simulation} class
 }
 \description{
-This function creates an object of \code{gecon_simulation} class.
+The function creates an object of \code{gecon_simulation} class.
 }
 \usage{
-gecon_simulation(sim, shock_list, var_list, sim_type, time_n, model_info, model_variable_name)
+gecon_simulation(sim,
+                 shocks, shocks_tex, variables, variables_tex,
+                 sim_name, model_info, r_object_name)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{sim}{
-the array of simulation results (three dimensional when the impulse response functions have been computed for more than one shock).
+an array with simulation results (3-dimensional if the IRFs have been performed,
+2-dimensional otherwise).
 }
-  \item{shock_list}{
-a list of shocks for which the simulations have been computed. 
+  \item{shocks}{
+a character vector with the names of the shocks for which the simulations have been performed.
 }
-  \item{var_list}{
-a list of variables used.
+  \item{shocks_tex}{
+a character vector with LaTeX names of the shocks for which the simulations have been performed.
 }
-  \item{sim_type}{
-a type of simulation.
+  \item{variables}{
+a character vector with the names of the variables for which the simulations have been performed.
 }
-  \item{time_n}{
-the number of periods for which the simulation has been performed.
+  \item{variables_tex}{
+a character vector with LaTeX names of the variables for which the simulations have been performed.
+}
+  \item{sim_name}{
+a character string, the simulation name.
 }
  \item{model_info}{
-a character vector of length 3, containing information about the model: the input file name, the input file path, and the date of creation.
+a character vector of length 3 containing information about the model: the input file name, the input file path, and the date of creation.
 }
-  \item{model_variable_name}{
-a character string denoting the name of the model for which the simulation has been performed.
+  \item{r_object_name}{
+a character string with the name of an R object storing the model for which the simulations have been performed.
 }
 }
 \value{
-An object of the \code{gecon_simulation} class.
+An object of \code{gecon_simulation} class.
 }
 \seealso{
-Generic functions such as \code{print} and \code{summary} can provide information about the simulations. 
-The \code{\link{plot_simulation}} function allows to visualize the impact on variables.
+Generic functions such as \code{print} and \code{summary} provide information about the simulations.
+The \code{\link{plot_simulation}} function allows to visualize the impact of simulations on the model's variables.
 }
-\author{
-Karol Podemski \email{karol.podemski@gmail.com}, \cr
-Kaja Retkiewicz-Wijtiwiak \email{kaja.retkiewicz@gmail.com}
+\note{
+The \code{gecon_simulation} constructor is invoked by the \code{random_path},
+\code{simulate_model}, and \code{compute_irf} functions.
+In general, users should not call this function explicitly.
 }

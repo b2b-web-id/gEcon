@@ -1,12 +1,12 @@
-/***********************************************************
- * (c) Kancelaria Prezesa Rady Ministrów 2012-2015         *
- * Treść licencji w pliku 'LICENCE'                        *
- *                                                         *
- * (c) Chancellery of the Prime Minister 2012-2015         *
- * License terms can be found in the file 'LICENCE'        *
- *                                                         *
- * Author: Grzegorz Klima                                  *
- ***********************************************************/
+/*****************************************************************************
+ * This file is a part of gEcon.                                             *
+ *                                                                           *
+ * (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015 *
+ * (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018   *
+ * License terms can be found in the file 'LICENCE'                          *
+ *                                                                           *
+ * Author: Grzegorz Klima                                                    *
+ *****************************************************************************/
 
 /** \file model.h
  * \brief Class representing general equilibrium model.
@@ -24,24 +24,20 @@
 /// Class representing general equilibrium model.
 class Model {
   public:
-
+    /// Model options
     enum option {
-        backwardcomp = 0,
+        silent = 0,
         verbose,
+        warnings_opt,
         output_logf,
         output_latex,
         output_latex_long,
         output_latex_landscape,
         output_r,
         output_r_long,
+        output_r_jacobian,
+        output_r_rcpp,
         OPTIONS_LENGTH
-    };
-
-    enum reference {
-        objective,
-        constraints,
-        focs,
-        identities
     };
 
     /// Default constructor
@@ -60,7 +56,7 @@ class Model {
 
     /// Add variables to be symbolically reduced.
     void add_red_vars(const vec_exint vl) {
-        m_redvars_v = vl;
+        m_v_redvars = vl;
     }
 
     /// Add block.
@@ -131,9 +127,9 @@ class Model {
     void clear();
 
     /// Warning
-    void warning(const std::string &mes);
+    void warning(const std::string &mes, int l);
     /// Error
-    void error(const std::string &mes);
+    void error(const std::string &mes, int l);
 
     /// Where there any errors?
     bool errors() const { return m_err.size(); }
@@ -142,55 +138,61 @@ class Model {
     bool warnings() const { return m_warn.size(); }
 
     /// Retrieve error messages.
-    std::string get_errs() const;
+    std::string get_errs(bool log = false) const;
 
     /// Retrieve warning messages.
-    std::string get_warns() const;
+    std::string get_warns(bool log = false) const;
+
+    /// Check number of warning messages and set writing logfile if necessary.
+    void check_warns();
 
     /// Produce output
     void write() const;
 
   private:
 
+    // Warnings & errors
+    std::vector<std::string> m_warn, m_err;
+
     // Options
     bool m_options[OPTIONS_LENGTH];
     int m_options_set[OPTIONS_LENGTH];
+
     // Model path and name
     std::string m_path, m_name;
+
     // Index set names and map
     std::set<std::string> m_set_names;
     std::map<std::string, symbolic::idx_set> m_sets;
-    // Block names
+
+    // Blocks and block names
+    std::vector<Model_block> m_blocks;
     std::set<std::string> m_names;
     // Vars for reduction
-    vec_exint m_redvars_v;
-    set_ex m_redvars;
-    // Blocks
-    std::vector<Model_block> m_blocks;
-    // Variables
-    set_ex m_vars;
-    // Defined variables
-    map_ex_str m_def_vars;
-    // Parameters
-    set_ex m_params, m_params_calibr, m_params_free;
-    map_ex_ex m_params_free_set;
-    // Controls
-    map_ex_str m_contr;
-    // Objective functions
-    map_ex_str m_obj;
-    // Is deterministic?
-    bool m_deter;
-    // Is static?
-    bool m_static;
-    // Max and min lag
-    int m_max_lag, m_min_lag;
-    // Shocks
-    set_ex m_shocks;
+    vec_exint m_v_redvars;
+    set_ex m_s_redvars;
+
+    // Is deterministic? Is static?
+    bool m_deter, m_static;
+
     // Lagrange multipliers
     set_ex m_lagr_mult;
     map_ex_str m_lagr_mult_in;
+    // Objective functions
+    map_ex_str m_obj;
+    // Controls
+    map_ex_str m_contr;
+    // Max and min lag
+    int m_max_lag, m_min_lag;
     // Lagged variables
     set_ex m_lags;
+    // Shocks
+    set_ex m_shocks;
+    // Variables
+    set_ex m_vars;
+    // Parameters
+    set_ex m_params, m_params_calibr, m_params_free;
+    map_ex_ex m_params_free_set;
     // Equations
     set_ex m_eqs, m_t_eqs;
     // Steady state equations
@@ -212,8 +214,13 @@ class Model {
     std::map<std::pair<int, int>, ex> m_jacob_ss_calibr;
     // 1st order pertubation
     std::map<std::pair<int, int>, ex> m_Atm1, m_At, m_Atp1, m_Aeps;
-    // Warnings & errors
-    std::vector<std::string> m_warn, m_err;
+
+    // Write gEcon model info message.
+    void write_model_info(const std::string &mes) const;
+    // Write gEcon info message.
+    void write_info(const std::string &mes) const;
+    // Stop on errors.
+    void terminate_on_errors();
 
     /// Get option name
     static std::string get_option_name(int o);
@@ -227,6 +234,8 @@ class Model {
     void check_findices();
     // Check indices
     void error_findices(const std::map<unsigned, unsigned> &im, const ex &e, int lineno);
+    // Check list of variables for reduction (1/2)
+    void check_red_vars1();
     // Check definitions
     void check_defs();
     // Check names in blocks
@@ -237,6 +246,8 @@ class Model {
     void check_deter();
     // Check Lagrange multipliers
     void check_lagr();
+    // Check references to blocks
+    void check_refs();
     // Check controls
     void check_obj_contr();
     // Check / handle leads > 1
@@ -245,8 +256,6 @@ class Model {
     void lags();
     // Check if model is static
     void check_static();
-    // Check references to blocks
-    void check_refs();
     // Derive FOCs
     void derive_focs();
     // Collect shocks
@@ -257,8 +266,8 @@ class Model {
     void collect_calibr();
     // Merge equations
     void collect_eq();
-    // Check list of variables for reduction
-    void check_red_vars();
+    // Check list of variables for reduction (2/2)
+    void check_red_vars2();
     // Reduce equations
     void reduce();
     // Construct variables / equations map
@@ -277,16 +286,9 @@ class Model {
     void ss_jacob();
     // 1st order derivatives
     void diff_eqs();
-    // Write gEcon model info message.
-    static void write_model_info(const std::string &mes);
-    // Write gEcon info message.
-    static void write_info(const std::string &mes);
-    // Error
-    void terminate_on_errors();
-    // Write log
-    void write_log(std::ostream&) const;
-    // Generate logfile with results.
-    void write_logf() const;
+
+    // Write logfile
+    void write_log() const;
     // Generate R code and write it to file.
     void write_r() const;
     // Generate LaTeX documentation and write it to file.

@@ -2,28 +2,28 @@
 \alias{get_var_names_by_index}
 \title{Variables corresponding to given indices}
 \description{
-The \code{get_var_names_by_index} function retrieves the names of variables with given indices.
+The \code{get_var_names_by_index} function allows to retrieve the names of variables with given indices.
 }
 \usage{
 get_var_names_by_index(model, index_names)
 }
 \arguments{
 \item{model}{an object of \code{gecon_model} class.}
-\item{index_names}{a character vector of the chosen indices.}
+\item{index_names}{a character vector of indices.}
 }
 \value{
-The function returns a character vector of relevant variable names.
+The function returns a character vector of relevant variables' names.
 }
 \details{
-Cf. gEcon manual, chapter "Templates".
+Cf. gEcon users' guide, chapter `Templates'.
 }
 \examples{
 # copy the example to the current working directory
-file.copy(from = file.path(system.file("examples", package = 'gEcon'),
-          'pure_exchange_t.gcn'), to = getwd())
+file.copy(from = file.path(system.file("examples", package = "gEcon"),
+          "pure_exchange.gcn"), to = getwd())
 
 # make and load the model
-pure_exchange_t <- make_model('pure_exchange_t.gcn')
+pure_exchange_t <- make_model("pure_exchange.gcn")
 
 # model calibration
 pure_exchange_t <- set_free_par(pure_exchange_t,
@@ -37,11 +37,11 @@ pure_exchange_t <- set_free_par(pure_exchange_t,
 # find the equilibrium
 pure_exchange_t <- steady_state(pure_exchange_t)
 
-# get all variable names associated with agent A
+# get all variables' names associated with agent A
 var_names_A <- get_var_names_by_index(pure_exchange_t, index_names = "A")
 
 
-# get all variable names associated with agent B
+# get all variables' names associated with agent B
 var_names_B <- get_var_names_by_index(pure_exchange_t, index_names = "B")
 
 # compare equilibrium allocations

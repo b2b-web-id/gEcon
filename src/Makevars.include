@@ -33,11 +33,11 @@ $(PREFIX)/symbolic/ops_trans.o \
 $(PREFIX)/symbolic/ops_search.o \
 $(PREFIX)/symbolic/ex.o
 
-INCLUDE_PARSER = -I$(PREFIX)/antlr_include -I$(PREFIX)/parser
+INCLUDE_PARSER = -I$(PREFIX)/parser -I$(PREFIX)/parser/antlr_include -I$(PREFIX)/parser/grammar
 
 OBJECTS_PARSER = \
-$(PREFIX)/parser/gEconLexer.o \
-$(PREFIX)/parser/gEconParser.o \
+$(PREFIX)/parser/grammar/gEconLexer.o \
+$(PREFIX)/parser/grammar/gEconParser.o \
 $(PREFIX)/parser/model_parse.o \
 $(PREFIX)/parser/gecon_tokens.o \
 
@@ -51,17 +51,17 @@ $(PREFIX)/model/model_write.o
 
 OBJECTS_QZ = \
 $(PREFIX)/qz/zgges_interface.o \
-$(PREFIX)/qz/zunmqr.o \
-$(PREFIX)/qz/ztgsyl.o \
-$(PREFIX)/qz/ztgsy2.o \
-$(PREFIX)/qz/ztgsen.o \
-$(PREFIX)/qz/zlatdf.o \
-$(PREFIX)/qz/zhgeqz.o \
-$(PREFIX)/qz/zgghrd.o \
-$(PREFIX)/qz/zgesc2.o \
-$(PREFIX)/qz/zgetc2.o \
-$(PREFIX)/qz/ztgexc.o \
-$(PREFIX)/qz/ztgex2.o \
-$(PREFIX)/qz/zgges.o \
-$(PREFIX)/qz/zggbal.o \
-$(PREFIX)/qz/zggbak.o
+$(PREFIX)/qz/lapack/zunmqr.o \
+$(PREFIX)/qz/lapack/ztgsyl.o \
+$(PREFIX)/qz/lapack/ztgsy2.o \
+$(PREFIX)/qz/lapack/ztgsen.o \
+$(PREFIX)/qz/lapack/zlatdf.o \
+$(PREFIX)/qz/lapack/zhgeqz.o \
+$(PREFIX)/qz/lapack/zgghrd.o \
+$(PREFIX)/qz/lapack/zgesc2.o \
+$(PREFIX)/qz/lapack/zgetc2.o \
+$(PREFIX)/qz/lapack/ztgexc.o \
+$(PREFIX)/qz/lapack/ztgex2.o \
+$(PREFIX)/qz/lapack/zgges.o \
+$(PREFIX)/qz/lapack/zggbal.o \
+$(PREFIX)/qz/lapack/zggbak.o

@@ -1,12 +1,12 @@
-/***********************************************************
- * (c) Kancelaria Prezesa Rady Ministrów 2012-2015         *
- * Treść licencji w pliku 'LICENCE'                        *
- *                                                         *
- * (c) Chancellery of the Prime Minister 2012-2015         *
- * License terms can be found in the file 'LICENCE'        *
- *                                                         *
- * Author: Grzegorz Klima                                  *
- ***********************************************************/
+/*****************************************************************************
+ * This file is a part of gEcon.                                             *
+ *                                                                           *
+ * (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015 *
+ * (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018   *
+ * License terms can be found in the file 'LICENCE'                          *
+ *                                                                           *
+ * Author: Grzegorz Klima                                                    *
+ *****************************************************************************/
 
 /** \file ex_func.cpp
  * \brief Functions.
@@ -38,8 +38,9 @@ const char *fname[] =
     "atan",    //    ATAN
     "sinh",    //    SINH
     "cosh",    //    COSH
-    "tanh"     //    TANH
-    // "erf"      //    ERF
+    "tanh",    //    TANH
+    "erf",     //    ERF
+    "pnorm"    //    PNORM
     };
 
 symbolic::Number (*feval[])(const symbolic::Number&) =
@@ -54,8 +55,9 @@ symbolic::Number (*feval[])(const symbolic::Number&) =
     symbolic::atan,  //    ATAN
     symbolic::sinh,  //    SIN
     symbolic::cosh,  //    COS
-    symbolic::tanh   //    TAN
-    // symbolic::erf    //    ERF
+    symbolic::tanh,  //    TAN
+    symbolic::erf,   //    ERF
+    symbolic::pnorm  //    PNORM
     };
 
 } /* namespace */
@@ -98,19 +100,19 @@ ex_func::compare(const ex_func &b) const
 
 
 std::string
-ex_func::str(int pflag) const
+ex_func::str(int pflag, bool c_style) const
 {
     if (pflag & INDEXING_ONLY) return std::string();
     std::string name(fname[m_code]);
-    return name + '(' + m_arg->str(pflag) + ')';
+    return name + '(' + m_arg->str(pflag, c_style) + ')';
 }
 
 
 std::string
-ex_func::strmap(const map_str_str &mss) const
+ex_func::strmap(const map_str_str &mss, bool c_style) const
 {
     std::string name(fname[m_code]);
-    return name + '(' + m_arg->strmap(mss) + ')';
+    return name + '(' + m_arg->strmap(mss, c_style) + ')';
 }
 
 
@@ -146,10 +148,17 @@ ex_func::get_lag_min(bool stop_on_E) const
 }
 
 
+#ifndef M_SQRT1_2
+#define M_SQRT1_2 0.707106781186547524400844362104849039
+#endif /* M_SQRT1_2 */
+
 #ifndef M_2_SQRTPI
 #define M_2_SQRTPI 1.12837916709551257389615890312154517
 #endif /* M_2_SQRTPI */
 
+#ifndef M_1_SQRT2PI
+#define M_1_SQRT2PI 0.39894228040143267793994605993438186
+#endif /* M_1_SQRT2PI */
 
 ptr_base
 ex_func::diff(const ptr_base &p) const
@@ -184,9 +193,12 @@ ex_func::diff(const ptr_base &p) const
             return mk_mul(d, mk_func(SINH, x));
         case TANH:
             return mk_mul(d, mk_sub(ex_num::one(), mk_pow(mk_func(TANH, x), ex_num::create(2))));
-        // case ERF:
-            // return mk_mul(mk_mul(d, ex_num::create(M_2_SQRTPI)),
-                            // mk_func(EXP, mk_neg(mk_pow(x, ex_num::create(2)))));
+        case ERF:
+            return mk_mul(d, mk_mul(ex_num::create(M_2_SQRTPI),
+                        mk_func(EXP, mk_neg(mk_pow(x, ex_num::create(2))))));
+        case PNORM:
+            return mk_mul(d, mk_mul(ex_num::create(M_1_SQRT2PI),
+                        mk_func(EXP, mk_mul(ex_num::create(-.5), mk_pow(x, ex_num::create(2))))));
         default:
             INTERNAL_ERROR
     }

@@ -1,12 +1,12 @@
-/***********************************************************
- * (c) Kancelaria Prezesa Rady Ministrów 2012-2015         *
- * Treść licencji w pliku 'LICENCE'                        *
- *                                                         *
- * (c) Chancellery of the Prime Minister 2012-2015         *
- * License terms can be found in the file 'LICENCE'        *
- *                                                         *
- * Author: Grzegorz Klima                                  *
- ***********************************************************/
+/*****************************************************************************
+ * This file is a part of gEcon.                                             *
+ *                                                                           *
+ * (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015 *
+ * (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018   *
+ * License terms can be found in the file 'LICENCE'                          *
+ *                                                                           *
+ * Author: Grzegorz Klima                                                    *
+ *****************************************************************************/
 
 /** \file ex_sum.cpp
  * \brief Sum over indices.
@@ -108,7 +108,7 @@ ex_sum::compare(const ex_sum &b) const
 
 
 std::string
-ex_sum::str(int pflag) const
+ex_sum::str(int pflag, bool c_style) const
 {
     if (pflag & INDEXING_ONLY) return std::string();
     if ((pflag & DROP_IDX) || (pflag & CONVERT_IDX))
@@ -119,14 +119,14 @@ ex_sum::str(int pflag) const
         || (m_e->flag() & SINGLE)) brace = false;
     std::string res = "SUM" + m_ie.str() + ' ';
     if (brace) res += "(";
-    res += m_e->str(pflag);
+    res += m_e->str(pflag, c_style);
     if (brace) res += ")";
     return res;
 }
 
 
 std::string
-ex_sum::strmap(const map_str_str &mss) const
+ex_sum::strmap(const map_str_str &mss, bool c_style) const
 {
     USER_ERROR("ex_sum::strmap() called")
 }

@@ -5,61 +5,61 @@
 Compute impulse response functions (IRFs)
 }
 \description{
-The \code{compute_irf} function computes the impulse response functions for the specified set of variables and shocks and returns an object of the \code{gecon_simulation} class.
+The \code{compute_irf} function computes the impulse response functions for selected variables
+and shocks and returns an object of \code{gecon_simulation} class.
 }
 \usage{
-compute_irf(model, shock_list = NULL, var_list = NULL,
-            path_length = 40, cholesky = TRUE)
+compute_irf(model, variables = NULL, shocks = NULL,
+            sim_length = 40, cholesky = TRUE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{model}{
-an object of the \code{gecon_model} class.
+an object of \code{gecon_model} class.
 }
-  \item{shock_list}{
-a list of shocks for which the IRFs are to be computed. If this argument is missing, the IRFs are computed for all the shocks in the model.
-By default, the impulse response functions are created for all the shocks in the model.
+  \item{variables}{
+the names or indices of variables whose responses are to be simulated.
 }
-  \item{var_list}{
-a list of variables, for which the impact of shocks has to be computed. By default, the impulse response functions are created
-for the state variables only.
+  \item{shocks}{
+the names or indices of shocks for which IRFs are to be computed.
+If missing, IRFs are computed for all shocks with non-zero variance.
 }
-  \item{path_length}{
-the number of periods for which the IRFs are to be computed.
+  \item{sim_length}{
+the length of simulation path, the default value is 40.
 }
   \item{cholesky}{
-logical. If this option is set to FALSE, the function computes the IRFs based on uncorrelated shocks, otherwise the variance-covariance matrix is orthogonalized by using the Cholesky decomposition and the IRFs are computed by using this matrix.
+a logical value. If set to FALSE, IRFs are computed with initial values of all shocks equal to 1,
+otherwise the Cholesky decomposition of shock covariance matrix is used (the default).
 }
 }
 \details{
-Cf. gEcon manual, chapter "Model analysis".
+Cf. gEcon users' guide, chapter `Model analysis'.
 }
 \value{
-The function returns an object of \code{gecon_simulation} class. Generic functions such as \code{print} and \code{summary} provide information about the impulse response functions. The \code{plot_simulation} function allows to visualize the IRFs.
+The function returns an object of \code{gecon_simulation} class.
 }
 \seealso{
 For details, see \code{\link{gecon_simulation-class}}.
-}
-\author{
-Karol Podemski \email{karol.podemski@gmail.com}, \cr
-Kaja Retkiewicz-Wijtiwiak \email{kaja.retkiewicz@gmail.com}
+Generic functions such as \code{print} and \code{summary} provide information
+about the impulse response functions.
+The \code{plot_simulation} function allows to plot the IRFs.
 }
 \examples{
 # copy the example to the current working directory
-file.copy(from = file.path(system.file("examples", package = 'gEcon'),
-          'rbc.gcn'), to = getwd())
+file.copy(from = file.path(system.file("examples", package = "gEcon"),
+          "rbc.gcn"), to = getwd())
 
 # make and load the model
-rbc <- make_model('rbc.gcn')
+rbc <- make_model("rbc.gcn")
 
 # solve the model
 rbc <- steady_state(rbc)
 rbc <- solve_pert(rbc)
 
 # compute and print the IRFs
-rbc <- set_shock_cov_mat(rbc, shock_matrix = matrix(0.01, 1, 1), shock_order = 'epsilon_Z')
-irf_rbc <- compute_irf(rbc, cholesky = TRUE,
-                          var_list = c('K_s', 'C', 'Z', 'I', 'Y'))
-summary(irf_rbc)
-plot_simulation(irf_rbc)
+rbc <- set_shock_cov_mat(rbc, cov_matrix = matrix(0.01, 1, 1),
+                         shock_order = "epsilon_Z")
+rbc_irf <- compute_irf(rbc, variables = c("K_s", "C", "Z", "I", "Y"))
+summary(rbc_irf)
+plot_simulation(rbc_irf)
 }

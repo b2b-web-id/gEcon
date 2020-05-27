@@ -1,12 +1,12 @@
-/***********************************************************
- * (c) Kancelaria Prezesa Rady Ministrów 2012-2015         *
- * Treść licencji w pliku 'LICENCE'                        *
- *                                                         *
- * (c) Chancellery of the Prime Minister 2012-2015         *
- * License terms can be found in the file 'LICENCE'        *
- *                                                         *
- * Author: Grzegorz Klima                                  *
- ***********************************************************/
+/*****************************************************************************
+ * This file is a part of gEcon.                                             *
+ *                                                                           *
+ * (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015 *
+ * (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018   *
+ * License terms can be found in the file 'LICENCE'                          *
+ *                                                                           *
+ * Author: Grzegorz Klima                                                    *
+ *****************************************************************************/
 
 /** \file ex_prod.cpp
  * \brief PRoduct over indices.
@@ -82,7 +82,7 @@ ex_prod::compare(const ex_prod &b) const
 
 
 std::string
-ex_prod::str(int pflag) const
+ex_prod::str(int pflag, bool c_style) const
 {
     if (pflag & INDEXING_ONLY) return std::string();
     if ((pflag & DROP_IDX) || (pflag & CONVERT_IDX))
@@ -93,14 +93,14 @@ ex_prod::str(int pflag) const
         ((m_e->type() != ADD) && (m_e->flag() & SINGLE))) brace = false;
     std::string res = "PROD" + m_ie.str() + ' ';
     if (brace) res += "(";
-    res += m_e->str(pflag);
+    res += m_e->str(pflag, c_style);
     if (brace) res += ")";
     return res;
 }
 
 
 std::string
-ex_prod::strmap(const map_str_str &mss) const
+ex_prod::strmap(const map_str_str &mss, bool c_style) const
 {
     USER_ERROR("ex_prod::strmap() called")
 }

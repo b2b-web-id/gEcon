@@ -1,12 +1,12 @@
-/***********************************************************
- * (c) Kancelaria Prezesa Rady Ministrów 2012-2015         *
- * Treść licencji w pliku 'LICENCE'                        *
- *                                                         *
- * (c) Chancellery of the Prime Minister 2012-2015         *
- * License terms can be found in the file 'LICENCE'        *
- *                                                         *
- * Author: Grzegorz Klima                                  *
- ***********************************************************/
+/*****************************************************************************
+ * This file is a part of gEcon.                                             *
+ *                                                                           *
+ * (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015 *
+ * (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018   *
+ * License terms can be found in the file 'LICENCE'                          *
+ *                                                                           *
+ * Author: Grzegorz Klima                                                    *
+ *****************************************************************************/
 
 /** \file ex_vartidx.cpp
  * \brief Time indexed variables with additional indices
@@ -211,7 +211,7 @@ ex_vartidx::get_name() const
 
 
 std::string
-ex_vartidx::str(int pflag) const
+ex_vartidx::str(int pflag, bool c_style) const
 {
     if (pflag & INDEXING_ONLY) return std::string();
     stringhash &ref = stringhash::get_instance();
@@ -272,9 +272,9 @@ if (id < 0) { res += '\''; res += ref.get_str(-id); res += '\''; \
 
 
 std::string
-ex_vartidx::strmap(const map_str_str &mss) const
+ex_vartidx::strmap(const map_str_str &mss, bool c_style) const
 {
-    std::string name = str(CONVERT_IDX | DROP_T);
+    std::string name = str(CONVERT_IDX | DROP_T, c_style);
     map_str_str::const_iterator it;
     it = mss.find(name);
     if (it == mss.end()) {
@@ -367,18 +367,17 @@ ex_vartidx::has(const ptr_base &what, search_flag f, bool exact_idx) const
         if ((m_idx4 > 0) && (w->m_idx4 < 0)) return false;
         if ((m_idx4 < 0) && (w->m_idx4 < 0) && (m_idx4 != w->m_idx4)) return false;
     }
-    int ld = m_lag - w->m_lag;
     switch (f) {
         case EXACT_T:
-            return (ld == 0) ? true : false;
+            return (m_lag == w->m_lag) ? true : false;
         case ANY_T:
             return true;
         case DIFF_T:
-            return (ld != 0) ? true : false;
+            return (m_lag != w->m_lag) ? true : false;
         case LEAD_T:
-            return (ld > 0) ? true : false;
+            return (m_lag > w->m_lag) ? true : false;
         case LAG_T:
-            return (ld < 0) ? true : false;
+            return (m_lag < w->m_lag) ? true : false;
         default:
             INTERNAL_ERROR
     }

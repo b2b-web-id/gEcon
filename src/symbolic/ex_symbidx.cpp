@@ -1,12 +1,12 @@
-/***********************************************************
- * (c) Kancelaria Prezesa Rady Ministrów 2012-2015         *
- * Treść licencji w pliku 'LICENCE'                        *
- *                                                         *
- * (c) Chancellery of the Prime Minister 2012-2015         *
- * License terms can be found in the file 'LICENCE'        *
- *                                                         *
- * Author: Grzegorz Klima                                  *
- ***********************************************************/
+/*****************************************************************************
+ * This file is a part of gEcon.                                             *
+ *                                                                           *
+ * (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015 *
+ * (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018   *
+ * License terms can be found in the file 'LICENCE'                          *
+ *                                                                           *
+ * Author: Grzegorz Klima                                                    *
+ *****************************************************************************/
 
 /** \file ex_symbidx.cpp
  * \brief Indexed symbols.
@@ -194,7 +194,7 @@ ex_symbidx::get_name() const
 
 
 std::string
-ex_symbidx::str(int pflag) const
+ex_symbidx::str(int pflag, bool c_style) const
 {
     if (pflag & INDEXING_ONLY) return std::string();
     stringhash &ref = stringhash::get_instance();
@@ -285,10 +285,10 @@ if (id < 0) { \
 
 
 std::string
-ex_symbidx::strmap(const map_str_str &mss) const
+ex_symbidx::strmap(const map_str_str &mss, bool c_style) const
 {
     map_str_str::const_iterator it;
-    std::string name = str(CONVERT_IDX);
+    std::string name = str(CONVERT_IDX, c_style);
     it = mss.find(name);
     if (it == mss.end()) {
         return name;

@@ -2,52 +2,56 @@
 \alias{solve_pert}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Solve the model in a linearised form (1st order perturbation)
+Solve the model in a (log-)linearised form (the first order perturbation)
 }
 \description{
-This function solves the model in a linearised form using Christopher Sims' \code{gensys} solver.
+The function solves the first order perturbation of a model in a (log-)linearised form
+using Christopher Sims' \code{gensys} solver.
 }
 \usage{
-solve_pert(model, loglin = TRUE, not_loglin_var = NULL,
-           norm_tol = 1e-08, solver = "sims_solver")
+solve_pert(model, loglin = TRUE,
+           loglin_var = NULL, not_loglin_var = NULL,
+           tol = 1e-6, solver = "gensys")
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{model}{
-an object of the \code{gecon_model} class.
+an object of \code{gecon_model} class.
 }
   \item{loglin}{
-an option to log-linearise the perturbation. If FALSE, the model is only linearised.
+a logical value. If TRUE, all variables are selected for log-linearisation.
+}
+  \item{loglin_var}{
+a vector of variables that are to be log-linearised (effective only if the \code{loglin} argument is set to FALSE).
 }
   \item{not_loglin_var}{
-a vector of variables that will not be log-linearised.
+a vector of variables that are not to be log-linearised (overrides previous settings).
 }
-  \item{norm_tol}{
-the tolerance for residuals of model (default 1e-08).
+  \item{tol}{
+a numeric value. Tolerance level of a solution (1e-6 by default).
 }
   \item{solver}{
-the name linear RE solver. The default solver is Christopher Sims' solver. Currently no other solvers are available.
+the name of the first order perturbation solver. The default solver is Christopher Sims' \code{gensys} solver.
 }
 }
 \details{
-Cf. gEcon manual, chapter "Solving the model in linearised form".
+Cf. gEcon users' guide, chapter `Solving the model in linearised form'.
 }
 \value{
-an object of the \code{gecon_model} class representing the model. Generic functions such as \code{print} and \code{summary} allow to show the model elements. The \code{\link{get_pert_solution}}  function returns computed recursive laws of motion for the model's variables. The \code{\link{check_bk}} function displays the eigenvalues of the system and checks the Blanchard-Kahn conditions.
+an object of \code{gecon_model} class representing the model.
+Generic functions such as \code{print} and \code{summary} allow to show the model's components.
+The \code{\link{get_pert_solution}} function returns computed recursive laws of motion of the model's variables.
+The \code{\link{check_bk}} function displays the eigenvalues of the system and checks the Blanchard-Kahn conditions.
 }
 \references{
-Sims, Ch. A. (2002), "Solving Linear Rational Expectations Models.", \emph{Computational Economics}
-}
-\author{
-Karol Podemski \email{karol.podemski@gmail.com}, \cr
-Kaja Retkiewicz-Wijtiwiak \email{kaja.retkiewicz@gmail.com}
+Sims, Ch. A. (2002), Solving Linear Rational Expectations Models, \emph{Computational Economics}
 }
 \examples{
 # copy the example to the current working directory
-file.copy(from = file.path(system.file("examples", package = 'gEcon'),
-          'rbc.gcn'), to = getwd())
+file.copy(from = file.path(system.file("examples", package = "gEcon"),
+          "rbc.gcn"), to = getwd())
 # make and load the model
-rbc <- make_model('rbc.gcn')
+rbc <- make_model("rbc.gcn")
 # find the steady state
 rbc <- steady_state(rbc)
 
@@ -60,6 +64,6 @@ rbc <- solve_pert(rbc, loglin = FALSE)
 get_pert_solution(rbc)
 
 # solve with all variables except L_s log-linearised
-rbc <- solve_pert(rbc, not_loglin_var = c('L_s'))
+rbc <- solve_pert(rbc, not_loglin_var = c("L_s"))
 get_pert_solution(rbc)
 }

@@ -1,6 +1,7 @@
-PKG_LIBS = `$(R_HOME)/bin/Rscript -e "Rcpp:::LdFlags()"` $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS) -lstdc++
+CXX_STD = CXX11
+PKG_LIBS = `$(R_HOME)/bin/Rscript --vanilla -e "Rcpp:::LdFlags()"` $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS) -lstdc++
 PREFIX =.
 include ./Makevars.include
-PKG_CPPFLAGS = $(INCLUDE_GECON) $(INCLUDE_SYMBOLIC) $(INCLUDE_PARSER) $(INCLUDE_MODEL) `$(R_HOME)/bin/Rscript -e "Rcpp:::CxxFlags()"`
+PKG_CPPFLAGS = $(INCLUDE_GECON) $(INCLUDE_SYMBOLIC) $(INCLUDE_PARSER) $(INCLUDE_MODEL) `$(R_HOME)/bin/Rscript --vanilla -e "Rcpp:::CxxFlags()"`
 OBJECTS = $(OBJECTS_GECON) $(OBJECTS_SYMBOLIC) $(OBJECTS_PARSER) $(OBJECTS_MODEL) $(OBJECTS_QZ)
 PKG_CXXFLAGS = -DR_DLL

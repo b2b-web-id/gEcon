@@ -1,8 +1,8 @@
-// (c) Kancelaria Prezesa Rady Ministrów 2012-2015
-// Treść licencji w pliku 'LICENCE'
+// This file is a part of gEcon.
 //
-// (c) Chancellery of the Prime Minister 2012-2015
-// Licence terms can be found in the file 'LICENCE'
+// (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015
+// (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018
+// License terms can be found in the file 'LICENCE'
 //
 // Author: Grzegorz Klima
 
@@ -36,6 +36,7 @@ extern std::vector<std::string> errors;
 #include <climits>
 #include <stdexcept>
 #include <model.h>
+
 
 extern Model model_obj;
 using symbolic::triplet;
@@ -77,14 +78,29 @@ opts
     ;
 
 opt
-    : OUTPUT LATEX EQ b = atom_bool { model_obj.set_option(Model::output_latex, b); } SEMI
-    | OUTPUT LOGF EQ b = atom_bool { model_obj.set_option(Model::output_logf, b); } SEMI
-    | OUTPUT R EQ b = atom_bool { model_obj.set_option(Model::output_r, b); } SEMI
-    | OUTPUT R LONG EQ b = atom_bool { model_obj.set_option(Model::output_r_long, b); } SEMI
-    | OUTPUT LATEX LONG EQ b = atom_bool { model_obj.set_option(Model::output_latex_long, b); } SEMI
-    | OUTPUT LATEX LANDSCAPE EQ b = atom_bool { model_obj.set_option(Model::output_latex_landscape, b); } SEMI
+    : OUTPUT opt_output
+    | SILENT EQ b = atom_bool { model_obj.set_option(Model::silent, b); } SEMI
     | VERBOSE EQ b = atom_bool { model_obj.set_option(Model::verbose, b); } SEMI
-    | BACKWARDCOMP EQ b = atom_bool { model_obj.set_option(Model::backwardcomp, b); } SEMI
+    | WARNINGS EQ b = atom_bool { model_obj.set_option(Model::warnings_opt, b); } SEMI
+    ;
+
+opt_output
+    : LOGF EQ b = atom_bool { model_obj.set_option(Model::output_logf, b); } SEMI
+    | R opt_output_R
+    | LATEX opt_output_latex
+    ;
+
+opt_output_R
+    : EQ b = atom_bool { model_obj.set_option(Model::output_r, b); } SEMI
+    | LONG EQ b = atom_bool { model_obj.set_option(Model::output_r_long, b); } SEMI
+    | JACOBIAN EQ b = atom_bool { model_obj.set_option(Model::output_r_jacobian, b); } SEMI
+    | RCPP EQ b = atom_bool { model_obj.set_option(Model::output_r_rcpp, b); } SEMI
+    ;
+
+opt_output_latex
+    : EQ b = atom_bool { model_obj.set_option(Model::output_latex, b); } SEMI
+    | LONG EQ b = atom_bool { model_obj.set_option(Model::output_latex_long, b); } SEMI
+    | LANDSCAPE EQ b = atom_bool { model_obj.set_option(Model::output_latex_landscape, b); } SEMI
     ;
 
 sets
@@ -94,8 +110,7 @@ sets
 seteq
     : ids = id_str EQ s = setex SEMI {
         if (!model_obj.add_set(idx_set(s, ids.first)))
-            errors.push_back("set \"" + ids.first + "\" already declared"
-                + "; error near line " + num2str(ids.second));
+            model_obj.error("set \"" + ids.first + "\" already declared", ids.second);
       }
     ;
 
@@ -117,11 +132,11 @@ setvalid
                 case 2: mes += "sets are not equal"; break;
                 case 3: mes += "sets are equal"; break;
             }
-            mes += ") near line " + num2str($QUESTION.line);
-            model_obj.error(mes);
+            mes += ")";
+            model_obj.error(mes, $QUESTION.line);
         }
       }
-    ;
+   ;
 
 setex returns [idx_set is]
     : s = setex_add { $is = s; }
@@ -160,54 +175,54 @@ set returns [idx_set iset]
     iset = idx_set("");
 }
     : ZERO
-    | ls = list_set {
+    | is = id_str {
+        if (!model_obj.is_set(is.first))
+            model_obj.error("undefined set \"" + is.first + "\" used in expression", is.second);
+        iset = model_obj.get_set(is.first);
+      }
+    | LBRACE ls = list_set {
         vec_strint::const_iterator it = ls.begin();
         for (; it != ls.end(); ++it) {
             if (!iset.add(it->first))
-                errors.push_back("element \"" + it->first + "\" already present in the set"
-                    + "; error near line " + num2str(it->second));
+                model_obj.error("element \"" + it->first + "\" already present in the set",
+                                it->second);
         }
-      }
-    | seq = seq_set {
+      } RBRACE
+    | LBRACE seq = seq_set {
         if (seq.first) {
             for (char i = seq.second; i <= (char) seq.third; ++i)
                 iset.add(std::string() = i);
         } else {
+            int d = 0;
+            if (seq.third > 0) {
+                d = 1 + (int) std::log10((double) seq.third);
+            }
             for (unsigned i = seq.second; i <= seq.third; ++i)
-                iset.add(num2str(i));
+                iset.add(num2str(i, d));
         }
-      }
-    | is = id_str {
-        if (!model_obj.is_set(is.first))
-            model_obj.error("undefined set \"" + is.first + "\" used in expression; error near line "
-                            + num2str(is.second));
-        iset = model_obj.get_set(is.first);
-      }
+      } RBRACE
     ;
 
 list_set returns [vec_strint vsi]
-    : LBRACE QUOTE ids = idx_str QUOTE { vsi.push_back(strint(ids.first, ids.second)); }
-      (COMMA QUOTE ids = idx_str QUOTE { vsi.push_back(strint(ids.first, ids.second)); })* RBRACE
+    :  QUOTE ids = idx_str QUOTE { vsi.push_back(strint(ids.first, ids.second)); }
+      (COMMA QUOTE ids = idx_str QUOTE { vsi.push_back(strint(ids.first, ids.second)); })*
     ;
 
 seq_set returns [triplet<bool, unsigned, unsigned> seq]
-    : LBRACE QUOTE beg = SLETTER QUOTE DDOT QUOTE end = SLETTER QUOTE RBRACE {
+    : QUOTE beg = SLETTER QUOTE DDOT QUOTE end = SLETTER QUOTE {
         seq.first = true; seq.second = $beg.text[0]; seq.third = $end.text[0];
         if (seq.second > seq.third)
-            errors.push_back("decreasing sequence of elements in set; error near line "
-                             + num2str($DDOT.line));
+            model_obj.error("decreasing sequence of elements in a set", $DDOT.line);
       }
-    | LBRACE QUOTE begc = capletter QUOTE DDOT QUOTE endc = capletter QUOTE RBRACE {
+    | QUOTE begc = capletter QUOTE DDOT QUOTE endc = capletter QUOTE {
         seq.first = true; seq.second = begc; seq.third = endc;
         if (seq.second > seq.third)
-            errors.push_back("decreasing sequence of elements in set; error near line "
-                             + num2str($DDOT.line));
+            model_obj.error("decreasing sequence of elements in a set", $DDOT.line);
       }
-    | LBRACE QUOTE begi = atom_int QUOTE DDOT QUOTE endi = atom_int QUOTE RBRACE {
+    | QUOTE begi = atom_int QUOTE DDOT QUOTE endi = atom_int QUOTE {
         seq.first = false; seq.second = begi; seq.third = endi;
         if (seq.second > seq.third)
-            errors.push_back("decreasing sequence of elements in set; error near line "
-                             + num2str($DDOT.line));
+            model_obj.error("decreasing sequence of elements in a set", $DDOT.line);
       }
     ;
 
@@ -222,7 +237,7 @@ capletter returns [unsigned c]
 
 
 tryreduce
-    : TRYREDUCE LBRACE lv = list_var { model_obj.add_red_vars(lv); } RBRACE SEMI?
+    : TRYREDUCE LBRACE lv = list_livar { model_obj.add_red_vars(lv); } RBRACE SEMI?
     ;
 
 
@@ -230,11 +245,9 @@ block
     : BLOCK lie = list_indexing_ex
       ids = id_str {
         if (model_obj.block_declared(ids.first)) {
-            errors.push_back("block \"" + ids.first + "\" already declared"
-                + "; error near line " + num2str(ids.second));
-            return;
+            model_obj.error("block \"" + ids.first + "\" already declared", ids.second);
         }
-        else model_obj.add_block(ids.first, ids.second, lie[0], lie[1]);
+        model_obj.add_block(ids.first, ids.second, lie[0], lie[1]);
       }
       LBRACE
         block_definitions?
@@ -282,17 +295,7 @@ list_ctr_var_elem returns [exstr val]
     std::string ref;
 }
     : lie = list_indexing_ex
-      v = atom_id_t (AT ids = id_str {
-        if (ids.first == model_obj.get_curr_block()) {
-            errors.push_back("reference to block \"" + ids.first + "\" within itself"
-                + "; error near line " + num2str(ids.second));
-        } else if (!model_obj.block_declared(ids.first)) {
-            errors.push_back("reference to an undeclared block \"" + ids.first + "\""
-                + "; error near line " + num2str(ids.second));
-        } else {
-            ref = ids.first;
-        }
-      })? {
+      v = atom_id_t (AT ids = id_str { ref = ids.first; })? {
         $val = exstr(ex(lie[0], ex(lie[1], v)), ref);
       }
     ;
@@ -316,19 +319,9 @@ constraint
         { model_obj.add_constraint(ex(lie[0], ex(lie[1], lhs)), ex(lie[0], ex(lie[1], rhs)),
                                     ex(lie[0], ex(lie[1], lambda)), $SEMI.line); }
     | lr = list_ref AT ids = id_str SEMI {
-        if (ids.first == model_obj.get_curr_block()) {
-            errors.push_back("reference to block \"" + ids.first + "\" within itself"
-                + "; error near line " + num2str(ids.second));
-            return;
-        } else if (!model_obj.block_declared(ids.first)) {
-            errors.push_back("reference to an undeclared block \"" + ids.first + "\""
-                + "; error near line " + num2str(ids.second));
-            return;
-        } else {
             for (unsigned i = 0; i < lr.size(); ++i) {
                 model_obj.add_constraint_ref(ids.first, lr[i].first, lr[i].second);
             }
-        }
       }
     ;
 
@@ -337,10 +330,10 @@ list_ref returns [vec_intint lr]
     ;
 
 ref_sec returns [std::pair<int, int> rs]
-    : OBJ { return std::pair<int, int>(Model::objective, $OBJ.line); }
-    | CONSTRAINTS { return std::pair<int, int>(Model::constraints, $CONSTRAINTS.line); }
-    | FOCS { return std::pair<int, int>(Model::focs, $FOCS.line); }
-    | IDS { return std::pair<int, int>(Model::identities, $IDS.line); }
+    : OBJ { return std::pair<int, int>(Model_block::objective, $OBJ.line); }
+    | CONSTRAINTS { return std::pair<int, int>(Model_block::constraints, $CONSTRAINTS.line); }
+    | FOCS { return std::pair<int, int>(Model_block::focs, $FOCS.line); }
+    | IDS { return std::pair<int, int>(Model_block::identities, $IDS.line); }
     ;
 
 block_identities
@@ -355,10 +348,7 @@ identity
     ;
 
 block_shocks
-    : ({ model_obj.get_option(Model::backwardcomp) }?) => SHOCKS LBRACE shock shock+ { model_obj.warning("in backward compatibility mode; accepting shock declarations separated by colon (';'); warning near line " + num2str($LBRACE.line)); } RBRACE SEMI?
-    | SHOCKS LBRACE ls = list_var (shock { errors.push_back("declaring shocks separated by colon (';') is obsolete, please rewrite your list of shocks using commas (',') or force acceptance of your code using \"backwardcomp\" option; error near line " + num2str($LBRACE.line)); } )? RBRACE SEMI? {
-        model_obj.add_shocks(ls);
-      }
+    : SHOCKS LBRACE ls = list_var { model_obj.add_shocks(ls); } RBRACE SEMI?
     ;
 
 shock
@@ -384,7 +374,6 @@ calibr_eq
 
 
 
-
 list_var returns [vec_exint listln]
 @init {
     vec_ex liste;
@@ -401,9 +390,32 @@ list_var returns [vec_exint listln]
         }
     ;
 
+
+
+list_livar returns [vec_exint listln]
+@init {
+    vec_ex liste;
+    std::vector<int> listl;
+}
+    :  val = list_livar_elem { liste.push_back(val); }
+        (COMMA { listl.push_back($COMMA.line); }
+            val = list_livar_elem { liste.push_back(val); })*
+        SEMI { listl.push_back($SEMI.line);
+            unsigned i = 0, n = listl.size();
+            listln.reserve(n);
+            for (; i < n; ++i)
+                listln.push_back(exint(liste[i], listl[i]));
+        }
+    ;
+
 list_var_elem returns [ex val]
     : lie = list_indexing_ex
         v = atom_id_t { $val = ex(lie[0], ex(lie[1], v)); }
+    ;
+
+list_livar_elem returns [ex val]
+    : lie = list_lindexing_ex
+        v = atom_id_t { $val = ex(lie[0], ex(lie[1], ex(lie[2], ex(lie[3], v)))); }
     ;
 
 list_par returns [vec_exint listln]
@@ -472,11 +484,27 @@ list_indexing_ex returns [vec_idx_ex lie]
         lie.push_back(ie.first);
         if (!toomany && (lie.size() > 2)) {
             toomany = true;
-            errors.push_back("up to 2 indexing expressions in template declaration are supported; error near line "
+            errors.push_back("up to 2 indexing expressions in a template declaration are supported in this context; error near line "
                                 + num2str(ie.second));
         }
       })*
       { while (lie.size() < 2) lie.push_back(idx_ex()); }
+    ;
+
+
+list_lindexing_ex returns [vec_idx_ex lie]
+@init {
+    bool toomany = false;
+}
+    : (ie = indexing_ex {
+        lie.push_back(ie.first);
+        if (!toomany && (lie.size() > 4)) {
+            toomany = true;
+            errors.push_back("up to 4 indexing expressions in a template declaration are supported in this context; error near line "
+                                + num2str(ie.second));
+        }
+      })*
+      { while (lie.size() < 4) lie.push_back(idx_ex()); }
     ;
 
 
@@ -486,34 +514,31 @@ indexing_ex returns [std::pair<idx_ex, int> val]
 }
     : LANGBR iv = id_str DBLCOLON is = id_str RANGBR {
         if (!model_obj.is_set(is.first))
-            model_obj.error("undefined set \"" + is.first + "\" used in expression; error near line "
-                            + num2str($RANGBR.line) + ", pos: " + num2str($RANGBR->get_charPositionInLine() + 1));
+            model_obj.error("undefined set \"" + is.first + "\" used in expression", $RANGBR.line);
         iset = model_obj.get_set(is.first);
         if (!iset.size())
-            model_obj.warning("empty set \"" + is.first + "\" used in expression; warning near line "
-                            + num2str($RANGBR.line) + ", pos: " + num2str($RANGBR->get_charPositionInLine() + 1));
+            model_obj.warning("empty set \"" + is.first + "\" used in expression", $RANGBR.line);
         $val = std::pair<idx_ex, int>(idx_ex(iv.first, iset), $RANGBR.line);
       }
     | LANGBR iv = id_str DBLCOLON is = id_str BACKSLASH ei = id_str RANGBR {
         if (!model_obj.is_set(is.first))
-            model_obj.error("undefined set \"" + is.first + "\" used in expression; error near line "
-                            + num2str($RANGBR.line) + ", pos: " + num2str($RANGBR->get_charPositionInLine() + 1));
+            model_obj.error("undefined set \"" + is.first + "\" used in expression", $RANGBR.line);
         iset = model_obj.get_set(is.first);
         if (!iset.size())
-            model_obj.warning("empty set \"" + is.first + "\" used in expression; warning near line "
-                            + num2str($RANGBR.line) + ", pos: " + num2str($RANGBR->get_charPositionInLine() + 1));
+            model_obj.warning("empty set \"" + is.first + "\" used in expression", $RANGBR.line);
         if (iv.first == ei.first)
-            model_obj.error("excluded index (\"" + ei.first + "\") is the same as free index in indexing expression; error near line " + num2str($RANGBR.line) + ", pos: " + num2str($RANGBR->get_charPositionInLine() + 1));
+            model_obj.error("excluded index (\"" + ei.first + "\") is the same as free index in indexing expression",
+                            $RANGBR.line);
         $val = std::pair<idx_ex, int>(idx_ex(iv.first, iset, ei.first, false), $RANGBR.line);
       }
     | LANGBR iv = id_str DBLCOLON is = id_str BACKSLASH QUOTE ei = idx_str QUOTE RANGBR {
         if (!model_obj.is_set(is.first))
-            model_obj.error("undefined set \"" + is.first + "\" used in expression; error near line "
-                            + num2str($RANGBR.line) + ", pos: " + num2str($RANGBR->get_charPositionInLine() + 1));
+            model_obj.error("undefined set \"" + is.first + "\" used in expression",
+                            $RANGBR.line);
         iset = model_obj.get_set(is.first);
         if (!iset.size())
-            model_obj.warning("empty set \"" + is.first + "\" used in expression; warning near line "
-                            + num2str($RANGBR.line) + ", pos: " + num2str($RANGBR->get_charPositionInLine() + 1));
+            model_obj.warning("empty set \"" + is.first + "\" used in expression",
+                              $RANGBR.line);
         $val = std::pair<idx_ex, int>(idx_ex(iv.first, iset, ei.first, true), $RANGBR.line);
       }
     ;
@@ -562,7 +587,8 @@ expr_func returns [ex val]
     | SINH LPAREN a = expr RPAREN { $val = sinh(a); }
     | COSH LPAREN a = expr RPAREN { $val = cosh(a); }
     | TANH LPAREN a = expr RPAREN { $val = tanh(a); }
-//  | ERF LPAREN a = expr RPAREN { $val = erf(a); }
+//    | ERF LPAREN a = expr RPAREN { $val = erf(a); }
+    | PNORM LPAREN a = expr RPAREN { $val = pnorm(a); }
     ;
 
 expr_e returns [ex val]
@@ -676,8 +702,11 @@ id_str returns [std::pair<std::string, int> val]
     | BTRUE { $val = std::pair<std::string, int>($BTRUE.text, $BTRUE.line); }
     | BFALSE { $val = std::pair<std::string, int>($BFALSE.text, $BFALSE.line); }
     | SS { $val = std::pair<std::string, int>($SS.text, $SS.line); }
+    | SILENT { $val = std::pair<std::string, int>($SILENT.text, $SILENT.line); }
     | VERBOSE { $val = std::pair<std::string, int>($VERBOSE.text, $VERBOSE.line); }
-    | BACKWARDCOMP  { $val = std::pair<std::string, int>($BACKWARDCOMP.text, $BACKWARDCOMP.line); }
+    | WARNINGS { $val = std::pair<std::string, int>($WARNINGS.text, $WARNINGS.line); }
+    | JACOBIAN { $val = std::pair<std::string, int>($JACOBIAN.text, $JACOBIAN.line); }
+    | RCPP { $val = std::pair<std::string, int>($RCPP.text, $RCPP.line); }
     ;
 
 atom_num returns [ex val]
@@ -710,15 +739,18 @@ atom_bool returns [bool val]
 
 
 // IDs that can be used as var names
-OUTPUT  : 'output';
-R       : 'R';
-LOGF    : 'logfile';
-LONG    : 'long';
-SHORT   : 'short';
-LATEX   : 'LaTeX'|'latex';
-VERBOSE : 'verbose';
-LANDSCAPE    : 'landscape';
-BACKWARDCOMP : 'backwardcomp';
+SILENT      : 'silent';
+VERBOSE     : 'verbose';
+WARNINGS    : 'warnings';
+OUTPUT      : 'output';
+R           : 'R';
+LOGF        : 'logfile';
+LONG        : 'long';
+SHORT       : 'short';
+LATEX       : 'LaTeX'|'latex';
+LANDSCAPE   : 'landscape';
+JACOBIAN    : 'Jacobian'|'jacobian';
+RCPP        : 'Rcpp'|'rcpp';
 
 // Bool vals
 BTRUE   : 'true'|'TRUE';
@@ -764,7 +796,8 @@ ATAN    : 'atan';
 SINH    : 'sinh';
 COSH    : 'cosh';
 TANH    : 'tanh';
-ERF     : 'erf';
+// ERF     : 'erf';
+PNORM   : 'pnorm';
 
 // Numbers
 ZERO:   '0';

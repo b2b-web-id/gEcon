@@ -2,10 +2,10 @@
 \alias{check_bk}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Blanchard Kahn conditions and eigenvalues
+Blanchard-Kahn conditions and eigenvalues
 }
 \description{
-The \code{check_bk} function checks Blanchard Kahn conditions and prints information about eigenvalues.
+The \code{check_bk} function checks the Blanchard-Kahn conditions and prints information about eigenvalues.
 }
 \usage{
 check_bk(model)
@@ -13,28 +13,29 @@ check_bk(model)
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{model}{
-an object of the \code{gecon_model} class.
+an object of \code{gecon_model} class.
 }
 }
 \details{
-Eigenvalues are computed when \code{gEcon} attempts to solve the perturbation (solver uses the Lapack \code{zgges} function  to compute eigenvalues). The \code{\link{solve_pert}} function must be called before the eigenvalues can be retrieved.
+The function checks if the Blanchard-Kahn conditions have been satisfied and prints info about eigenvalues
+larger than 1 in modulus and the number of forward looking variables.
+Eigenvalues are computed when \code{gEcon} attempts to solve the 1st order perturbation
+(solver uses the Lapack \code{zgges} function  to compute eigenvalues).
+The \code{\link{solve_pert}} function must be called before eigenvalues can be retrieved.
 }
 \references{
-Blanchard, O., Kahn C. M. (1980), "The Solution of Linear Difference Models
-under Rational Expectations", \emph{Econometrica}
-}
-\author{
-Karol Podemski \email{karol.podemski@gmail.com}, \cr
-Kaja Retkiewicz-Wijtiwiak \email{kaja.retkiewicz@gmail.com}
+Blanchard, O., Kahn C. M. (1980), The Solution of Linear Difference Models
+under Rational Expectations, \emph{Econometrica}
 }
 \examples{
-# copy the example to the current working directory, process it and solve for the steady state
-file.copy(from = file.path(system.file("examples", package = 'gEcon'),
-          'rbc.gcn'), to = getwd())
-rbc <- make_model('rbc.gcn')
+# copy the example to the current working directory, process it
+# and solve for the steady state
+file.copy(from = file.path(system.file("examples", package = "gEcon"),
+          "rbc.gcn"), to = getwd())
+rbc <- make_model("rbc.gcn")
 rbc <- steady_state(rbc)
 
-# solve in log-linearised form
+# solve the model in log-linearised form
 rbc <- solve_pert(rbc)
 
 # check eigenvalues

@@ -1,15 +1,15 @@
-/***********************************************************
- * (c) Kancelaria Prezesa Rady Ministrów 2012-2015         *
- * Treść licencji w pliku 'LICENCE'                        *
- *                                                         *
- * (c) Chancellery of the Prime Minister 2012-2015         *
- * License terms can be found in the file 'LICENCE'        *
- *                                                         *
- * Author: Grzegorz Klima                                  *
- ***********************************************************/
+/*****************************************************************************
+ * This file is a part of gEcon.                                             *
+ *                                                                           *
+ * (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015 *
+ * (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018   *
+ * License terms can be found in the file 'LICENCE'                          *
+ *                                                                           *
+ * Author: Grzegorz Klima                                                    *
+ *****************************************************************************/
 
 /** \file model_parse.cpp
- * \brief Parsing model.
+ * \brief Parsing the model.
  */
 
 #include <model_parse.h>
@@ -100,7 +100,10 @@ model_parse(const char *fname)
     model_obj.clear();
     std::string name(fname), mod_name;
 
+#ifdef R_DLL
+#else /* R_DLL */
     write_info(gecon_hello_str());
+#endif /* R_DLL */
     mod_name = get_mod_name(name);
     if (!mod_name.size()) {
         report_errors("(gEcon error): invalid model file name or extension: \'" + name + "\'");
@@ -148,10 +151,20 @@ report it (with the .gcn file that caused this message) to " + gecon_bug_str()))
 
     if (errors.size()) {
         std::string mes;
-        int i, n = errors.size();
-        for (i = 0; i < n; ++i)
-            mes += "(gEcon parse error " + symbolic::internal::num2str(i + 1)
-                   + "): " + errors[i] + '\n';
+        std::vector<std::string>::const_iterator it;
+#if defined(NERRTHRESH)
+#undef NERRTHRESH
+#endif
+#define NERRTHRESH 10
+        int i = 1, n = errors.size(), nn;
+        if (n <= NERRTHRESH) nn = n; else nn = NERRTHRESH - 1;
+        for (it = errors.begin(); i <= nn; ++it, ++i) {
+            mes += "(gEcon parse error " + num2str(i) + "): " + *it;
+            if (i < nn) mes += '\n';
+        }
+        if (n > NERRTHRESH) {
+            mes += "\n(gEcon parse errors): " + num2str(n - NERRTHRESH + 1) + " more follow";
+        }
         errors.clear();
         model_obj.clear();
         report_errors(mes);
@@ -179,33 +192,12 @@ report it (with the .gcn file that caused this message) to " + gecon_bug_str()))
     if (model_obj.warnings()) {
         std::string mes(model_obj.get_warns());
         report_warns(mes);
-    }
-    if (model_obj.errors()) {
-        std::string mes(model_obj.get_errs());
-        model_obj.clear();
-        report_errors(mes);
+        model_obj.check_warns();
     }
 
     model_obj.write();
     model_obj.clear();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -1,12 +1,12 @@
-/***********************************************************
- * (c) Kancelaria Prezesa Rady Ministrów 2012-2015         *
- * Treść licencji w pliku 'LICENCE'                        *
- *                                                         *
- * (c) Chancellery of the Prime Minister 2012-2015         *
- * License terms can be found in the file 'LICENCE'        *
- *                                                         *
- * Author: Grzegorz Klima                                  *
- ***********************************************************/
+/*****************************************************************************
+ * This file is a part of gEcon.                                             *
+ *                                                                           *
+ * (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015 *
+ * (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018   *
+ * License terms can be found in the file 'LICENCE'                          *
+ *                                                                           *
+ * Author: Grzegorz Klima                                                    *
+ *****************************************************************************/
 
  /** \file ops.cpp
  * \brief Operations.
@@ -79,6 +79,24 @@ symbolic::internal::lag(const ptr_base &p, int l)
         const ex_prod *pt = p.get<ex_prod>();
         return ex_prod::create(pt->get_ie(), lag(pt->get_e(), l));
     } else INTERNAL_ERROR
+}
+
+
+
+
+ptr_base
+symbolic::internal::lag0(const ptr_base &p)
+{
+    unsigned t = p->type();
+    if (t == VART) return ex_vart::create(p.get<ex_vart>()->m_hash, 0);
+    else if (t == VARTIDX) {
+        const ex_vartidx *pt = p.get<ex_vartidx>();
+        return ex_vartidx::create(pt->m_hash, 0, pt->m_noid, pt->m_idx1,
+                                  pt->m_idx2, pt->m_idx3, pt->m_idx4);
+    } else if (t == IDX) {
+        const ex_idx *pt = p.get<ex_idx>();
+        return ex_idx::create(pt->get_ie(), lag0(pt->get_e()));
+    } else USER_ERROR("lag0 admits variables only")
 }
 
 
@@ -312,6 +330,7 @@ symbolic::internal::subst(const ptr_base &p,
             if (all_leads_lags) {
                 int l1 = p->get_lag_max(), l2 = what->get_lag_max();
                 if (l1 == INT_MIN) return ss(with);
+                if (l2 == INT_MIN) return p;
                 return lag(with, l1 - l2);
             } else return with;
         } else if (t == VARTIDX) {
@@ -325,6 +344,7 @@ symbolic::internal::subst(const ptr_base &p,
             if (all_leads_lags) {
                 int l1 = p->get_lag_max(), l2 = what->get_lag_max();
                 if (l1 == INT_MIN) return ss(with2);
+                if (l2 == INT_MIN) return p;
                 return lag(with2, l1 - l2);
             } else return with2;
         } else INTERNAL_ERROR

@@ -2,14 +2,19 @@ Package: gEcon
 Type: Package
 Title: General Equilibrium Economic Modelling Language and Solution
         Framework (gEcon)
-Version: 0.9.1
-Date: 2015-05-19
+Version: 1.2.0
+Date: 2019-09-08
 Author: Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak
 Copyright: Chancellery of the Prime Minister of the Republic of Poland
-Maintainer: Grzegorz Klima <gklima@users.sourceforge.net>
-Description: Package for developing and solving dynamic general equilibrium models
-Depends: R(>= 3.0.0)
-Imports: methods, MASS, Matrix, nleqslv, Rcpp(>= 0.11.0)
+        2012-2015 Grzegorz Klima, Karol Podemski, Kaja
+        Retkiewicz-Wijtiwiak 2015-2018 Karol Podemski, Kaja
+        Retkiewicz-Wijtiwiak 2018-2019
+Maintainer: Karol Podemski <gecon.maintenance@gmail.com>
+Description: Package for developing and solving dynamic (stochastic) and static
+    general equilibrium models.
+Repository: R-Forge
+Depends: R (>= 3.5.0), methods, MASS, Matrix, nleqslv, Rcpp(>= 0.12.0)
 License_restricts_use: yes
 License: file LICENCE
-Packaged: 2015-05-18 22:12:08 UTC; chaos
+NeedsCompilation: yes
+Packaged: 2019-09-08 21:00:18 UTC; Lenovo

@@ -1,12 +1,12 @@
-/***********************************************************
- * (c) Kancelaria Prezesa Rady Ministrów 2012-2015         *
- * Treść licencji w pliku 'LICENCE'                        *
- *                                                         *
- * (c) Chancellery of the Prime Minister 2012-2015         *
- * License terms can be found in the file 'LICENCE'        *
- *                                                         *
- * Author: Grzegorz Klima                                  *
- ***********************************************************/
+/*****************************************************************************
+ * This file is a part of gEcon.                                             *
+ *                                                                           *
+ * (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015 *
+ * (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018   *
+ * License terms can be found in the file 'LICENCE'                          *
+ *                                                                           *
+ * Author: Grzegorz Klima                                                    *
+ *****************************************************************************/
 
 /** \file ex.cpp
  * \brief Expression.
@@ -184,15 +184,15 @@ ex::substidx(const std::string &what, const std::string &with, bool fix) const
 
 
 std::string
-ex::str(int pflag) const
+ex::str(int pflag, bool c_style) const
 {
-    return m_ptr->str(pflag);
+    return m_ptr->str(pflag, c_style);
 }
 
 std::string
-ex::strmap(const map_str_str &mss) const
+ex::strmap(const map_str_str &mss, bool c_style) const
 {
-    return m_ptr->strmap(mss);
+    return m_ptr->strmap(mss, c_style);
 }
 
 std::string
@@ -275,6 +275,11 @@ symbolic::pow(const ex &lhs, const ex &rhs)
 }
 
 
+#ifndef M_SQRT1_2
+#define M_SQRT1_2 0.707106781186547524400844362104849039
+#endif /* M_SQRT1_2 */
+
+
 ex
 symbolic::func(symbolic::internal::func_code fc, const ex &e)
 {
@@ -354,6 +359,13 @@ symbolic::lag(const ex &e, int l)
 
 
 ex
+symbolic::lag0(const ex &e)
+{
+    return ex(lag0(e.m_ptr));
+}
+
+
+ex
 symbolic::ss(const ex &e)
 {
     return ex(ss(e.m_ptr));
@@ -393,11 +405,6 @@ symbolic::expand(const ex &e)
     }
     return res;
 }
-
-// vec_ex
-// symbolic::expand(const vec_ex &ve)
-// {
-// }
 
 
 ex

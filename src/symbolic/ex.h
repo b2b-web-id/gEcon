@@ -1,12 +1,12 @@
-/***********************************************************
- * (c) Kancelaria Prezesa Rady Ministrów 2012-2015         *
- * Treść licencji w pliku 'LICENCE'                        *
- *                                                         *
- * (c) Chancellery of the Prime Minister 2012-2015         *
- * License terms can be found in the file 'LICENCE'        *
- *                                                         *
- * Author: Grzegorz Klima                                  *
- ***********************************************************/
+/*****************************************************************************
+ * This file is a part of gEcon.                                             *
+ *                                                                           *
+ * (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015 *
+ * (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018   *
+ * License terms can be found in the file 'LICENCE'                          *
+ *                                                                           *
+ * Author: Grzegorz Klima                                                    *
+ *****************************************************************************/
 
 /** \file ex.h
  * \brief Expression.
@@ -87,9 +87,9 @@ class ex {
     bool has_Es() const;
 
     /// String representation
-    std::string str(int pflag = internal::DEFAULT) const;
+    std::string str(int pflag = internal::DEFAULT, bool c_style = false) const;
     /// String representation using string 2 string map (name substitution).
-    std::string strmap(const map_str_str&) const;
+    std::string strmap(const map_str_str&, bool c_style = false) const;
     /// LaTeX string representation
     std::string tex(int pflag = internal::DEFAULT) const;
     /// Max lag in expression
@@ -112,6 +112,9 @@ class ex {
     bool is1() const { return m_ptr->is1(); }
     /// Does expression contain any time indexed terms?
     bool hast() const { return m_ptr->flag() & symbolic::internal::HAST; }
+    /// Is this a variable?
+    bool is_var() const { return (m_ptr->type() == symbolic::internal::VART)
+                            || (m_ptr->type() == symbolic::internal::VARTIDX); }
 
     /// Unary minus
     ex operator-() const;
@@ -139,6 +142,7 @@ class ex {
     friend ex add_idx(const ex &e, const ex &ie);
     friend ex apply_idx(const ex &e, const ex &ie);
     friend ex lag(const ex &e, int l);
+    friend ex lag0(const ex &e);
     friend ex ss(const ex &e);
     friend ex E(const ex &e, int l);
     friend ex diff(const ex &expression, const ex &variable);
@@ -268,8 +272,10 @@ inline ex sinh(const ex &arg) { return func(symbolic::internal::SINH, arg); }
 inline ex cosh(const ex &arg) { return func(symbolic::internal::COSH, arg); }
 /// Hyperbolic tangent
 inline ex tanh(const ex &arg) { return func(symbolic::internal::TANH, arg); }
-// /// Error function
-// inline ex erf(const ex &arg) { return func(symbolic::internal::ERF, arg); }
+/// Error function
+inline ex erf(const ex &arg) { return func(symbolic::internal::ERF, arg); }
+/// Cumulative density function of the standard normal distribution
+inline ex pnorm(const ex &arg) { return func(symbolic::internal::PNORM, arg); }
 
 /// Sum over indices
 ex sum(const idx_ex &ie, const ex &e);
@@ -291,8 +297,10 @@ ex add_idx(const ex &e, const idx_ex &ie);
 ex add_idx(const ex &e, const ex &ie);
 /// Apply indexing of one expression to another.
 ex apply_idx(const ex &e, const ex &of);
-/// Lag
+/// Lag.
 ex lag(const ex &e, int l);
+/// Set lag of a variable to zero.
+ex lag0(const ex &e);
 /// Steady state
 ex ss(const ex &e);
 /// Conditional expectation

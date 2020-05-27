@@ -1,6 +1,5 @@
-\name{gecon-package}
-\alias{gecon-package}
-\alias{gecon}
+\name{gEcon-package}
+\alias{gEcon-package}
 \docType{package}
 \title{
 General Equilibrium Economic Modelling Language and Solution Framework (gEcon)
@@ -22,7 +21,7 @@ users to derive the first order conditions (FOCs) and linearisation equations by
 derivation of the FOCs (e.g. Dynare).
 Derivation of FOCs is also required by GAMS and GEMPACK - probably the two most popular frameworks used in CGE modelling.
 Owing to the development of an algorithm for automatic derivation
-of first order conditions and implementation of a comprehensive symbolic library,
+of first order conditions and implementation of a comprehensive symbolic computations library,
 \code{gEcon} allows users to describe their models in terms
 of optimisation problems of agents. To authors' best knowledge there is no other
 publicly available framework for writing and solving DSGE & CGE models in this
@@ -39,36 +38,33 @@ for a model.
 The model description language is simple and intuitive. Given optimisation problems, constraints and identities, computer derives the FOCs, steady-state equations, and linearisation matrices automatically. Numerical solvers can be then employed to determine the steady state and approximate equilibrium laws of motion around it.
 }
 \author{
-Grzegorz Klima \email{gklima@users.sourceforge.net} \cr
-Karol Podemski \email{karol.podemski@gmail.com}, \cr
-Kaja Retkiewicz-Wijtiwiak \email{kaja.retkiewicz@gmail.com}
+Karol Podemski \email{gecon.maintenance@gmail.com}  (since 10.2012), \cr
+Kaja Retkiewicz-Wijtiwiak \email{kaja.retkiewicz@gmail.com} (since 10.2012), \cr
+Grzegorz Klima \email{gklima@users.sourceforge.net} (lead developer 10.2012-03.2018)
 
-Maintainer: Grzegorz Klima \email{gklima@users.sourceforge.net}
+Maintainer: Karol Podemski \email{gecon.maintenance@gmail.com}
 }
 \references{
-Cf. gEcon manual distributed with the package.
+Cf. gEcon users' guide, which can be found at \url{http://gecon.r-forge.r-project.org/}.
 }
 \keyword{ package }
 \examples{
 # copy the example to the current working directory
-file.copy(from = file.path(system.file("examples", package = 'gEcon'),
-          'rbc.gcn'), to = getwd())
+file.copy(from = file.path(system.file("examples", package = "gEcon"),
+          "rbc.gcn"), to = getwd())
 
 # make and load the model
-rbc <- make_model('rbc.gcn')
+rbc <- make_model("rbc.gcn")
 
 # solve the model
 rbc <- steady_state(rbc)
 rbc <- solve_pert(rbc)
 
 # compute and print correlations
-rbc <- set_shock_cov_mat(rbc, shock_matrix = matrix(0.01, 1, 1), shock_order = 'epsilon_Z')
-rbc <- compute_moments(rbc, ref_var = 'Y')
-get_moments(rbc,
-            moments = TRUE,
-            correlations = TRUE,
-            autocorrelations = TRUE,
-            var_dec = TRUE)
+rbc <- set_shock_cov_mat(rbc, cov_matrix = matrix(0.01, 1, 1),
+                         shock_order = "epsilon_Z")
+rbc <- compute_model_stats(rbc, ref_var = "Y")
+get_model_stats(rbc)
 
 # compute and plot the IRFs
 irf_rbc <- compute_irf(rbc)

@@ -1,12 +1,12 @@
-/***********************************************************
- * (c) Kancelaria Prezesa Rady Ministrów 2012-2015         *
- * Treść licencji w pliku 'LICENCE'                        *
- *                                                         *
- * (c) Chancellery of the Prime Minister 2012-2015         *
- * License terms can be found in the file 'LICENCE'        *
- *                                                         *
- * Author: Grzegorz Klima                                  *
- ***********************************************************/
+/*****************************************************************************
+ * This file is a part of gEcon.                                             *
+ *                                                                           *
+ * (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015 *
+ * (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018   *
+ * License terms can be found in the file 'LICENCE'                          *
+ *                                                                           *
+ * Author: Grzegorz Klima                                                    *
+ *****************************************************************************/
 
 /** \file model_block.h
  * \brief Class representing a block of general equilibrium model.
@@ -47,6 +47,15 @@ typedef std::vector<idx_ex> vec_idx_ex;
 /// Class representing model block (optimising agent or set of equilibrium conditions).
 class Model_block {
   public:
+
+    /// Reference types
+    enum reference {
+        objective,
+        constraints,
+        focs,
+        identities
+    };
+
     /// Constructor.
     explicit Model_block(const std::string &n, idx_ex i1 = idx_ex(), idx_ex i2 = idx_ex())
         : m_name(n), m_i1(i1), m_i2(i2), m_static(false) { ; }
@@ -84,11 +93,11 @@ class Model_block {
     void lags();
 
     /// FOCs
-    void focs();
+    void derive_focs();
     /// FOCs in deterministic model.
-    void focs_deter();
+    void derive_focs_deter();
     /// FOCs in static problem.
-    void focs_static();
+    void derive_focs_static();
 
     /// Collect variables and parameters, if init == TRUE, collect definitions
     /// and ignore FOCs.
@@ -150,7 +159,7 @@ class Model_block {
 
     // FOCs reduction.
     void reduce();
-    // Does it have referenced variable (objective, control or LM).
+    // Does it have referenced variable (objective, control or LM)?
     bool has_ref(const ex &v) const;
 
     friend class Model;

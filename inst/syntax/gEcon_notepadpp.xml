@@ -27,7 +27,7 @@
             <Keywords name="Keywords1">block options tryreduce indexsets</Keywords>
             <Keywords name="Keywords2">identities controls objective constraints focs definitions shocks calibration</Keywords>
             <Keywords name="Keywords3"></Keywords>
-            <Keywords name="Keywords4">ss SS inf Inf INF E SUM PROD KRONECKER_DELTA TRUE true FALSE false output verbose backwardcomp</Keywords>
+            <Keywords name="Keywords4">ss SS inf Inf INF E SUM PROD KRONECKER_DELTA TRUE true FALSE false output silent verbose warnings</Keywords>
             <Keywords name="Keywords5"></Keywords>
             <Keywords name="Keywords6"></Keywords>
             <Keywords name="Keywords7"></Keywords>

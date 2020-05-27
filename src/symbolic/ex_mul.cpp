@@ -1,12 +1,12 @@
-/***********************************************************
- * (c) Kancelaria Prezesa Rady Ministrów 2012-2015         *
- * Treść licencji w pliku 'LICENCE'                        *
- *                                                         *
- * (c) Chancellery of the Prime Minister 2012-2015         *
- * License terms can be found in the file 'LICENCE'        *
- *                                                         *
- * Author: Grzegorz Klima                                  *
- ***********************************************************/
+/*****************************************************************************
+ * This file is a part of gEcon.                                             *
+ *                                                                           *
+ * (c) Chancellery of the Prime Minister of the Republic of Poland 2012-2015 *
+ * (c) Grzegorz Klima, Karol Podemski, Kaja Retkiewicz-Wijtiwiak 2015-2018   *
+ * License terms can be found in the file 'LICENCE'                          *
+ *                                                                           *
+ * Author: Grzegorz Klima                                                    *
+ *****************************************************************************/
 
 /** \file ex_mul.cpp
  * \brief Multiplication.
@@ -137,7 +137,7 @@ ex_mul::compare(const ex_mul &b) const
 
 
 std::string
-ex_mul::str(int pflag) const
+ex_mul::str(int pflag, bool c_style) const
 {
     if (pflag & INDEXING_ONLY) return std::string();
     size_t i = 0, n = m_ops.size();
@@ -157,12 +157,25 @@ ex_mul::str(int pflag) const
             brace = false;
     }
     f = m_ops[i].first;
-    if (brace) res += '(';
-    res += m_ops[i].second->str(pflag);
-    if (brace) res += ')';
-    if (f != 1.) {
-        res += "^";
-        res += f.str();
+
+    if (c_style) {
+        if (f != 1.) res += "pow(";
+        if (brace) res += '(';
+        res += m_ops[i].second->str(pflag);
+        if (brace) res += ')';
+        if (f != 1.) {
+            res += ", ";
+            res += f.str();
+            res += ")";
+        }
+    } else {
+        if (brace) res += '(';
+        res += m_ops[i].second->str(pflag, c_style);
+        if (brace) res += ')';
+        if (f != 1.) {
+            res += "^";
+            res += f.str();
+        }
     }
 
     for (++i; i < n; ++i) {
@@ -174,12 +187,24 @@ ex_mul::str(int pflag) const
                 brace = false;
         }
         f = m_ops[i].first;
-        if (brace) res += '(';
-        res += m_ops[i].second->str(pflag);
-        if (brace) res += ')';
-        if (f != 1.) {
-            res += "^";
-            res += f.str();
+        if (c_style) {
+            if (f != 1.) res += "pow(";
+            if (brace) res += '(';
+            res += m_ops[i].second->str(pflag, c_style);
+            if (brace) res += ')';
+            if (f != 1.) {
+                res += ", ";
+                res += f.str();
+                res += ")";
+            }
+        } else {
+            if (brace) res += '(';
+            res += m_ops[i].second->str(pflag, c_style);
+            if (brace) res += ')';
+            if (f != 1.) {
+                res += "^";
+                res += f.str();
+            }
         }
     }
 
@@ -189,7 +214,7 @@ ex_mul::str(int pflag) const
 
 
 std::string
-ex_mul::strmap(const map_str_str &mss) const
+ex_mul::strmap(const map_str_str &mss, bool c_style) const
 {
     size_t i = 0, n = m_ops.size();
     Number f;
@@ -208,12 +233,25 @@ ex_mul::strmap(const map_str_str &mss) const
             brace = false;
     }
     f = m_ops[i].first;
-    if (brace) res += '(';
-    res += m_ops[i].second->strmap(mss);
-    if (brace) res += ')';
-    if (f != 1.) {
-        res += "^";
-        res += f.str();
+
+    if (c_style) {
+        if (f != 1.) res += "pow(";
+        if (brace) res += '(';
+        res += m_ops[i].second->strmap(mss, c_style);
+        if (brace) res += ')';
+        if (f != 1.) {
+            res += ", ";
+            res += f.str();
+            res += ")";
+        }
+    } else {
+        if (brace) res += '(';
+        res += m_ops[i].second->strmap(mss, c_style);
+        if (brace) res += ')';
+        if (f != 1.) {
+            res += "^";
+            res += f.str();
+        }
     }
 
     for (++i; i < n; ++i) {
@@ -225,12 +263,24 @@ ex_mul::strmap(const map_str_str &mss) const
                 brace = false;
         }
         f = m_ops[i].first;
-        if (brace) res += '(';
-        res += m_ops[i].second->strmap(mss);
-        if (brace) res += ')';
-        if (f != 1.) {
-            res += "^";
-            res += f.str();
+        if (c_style) {
+            if (f != 1.) res += "pow(";
+            if (brace) res += '(';
+            res += m_ops[i].second->strmap(mss, c_style);
+            if (brace) res += ')';
+            if (f != 1.) {
+                res += ", ";
+                res += f.str();
+                res += ")";
+            }
+        } else {
+            if (brace) res += '(';
+            res += m_ops[i].second->strmap(mss, c_style);
+            if (brace) res += ')';
+            if (f != 1.) {
+                res += "^";
+                res += f.str();
+            }
         }
     }
 
